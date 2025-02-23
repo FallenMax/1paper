@@ -2,6 +2,7 @@ import { ClientAPI, ServerAPI } from '../common/api.type'
 import { generatePageId } from '../common/lib/generate_id'
 import { Editor } from './component/editor'
 import { MobileToolbar } from './component/mobile_toolbar'
+import { TitleMenu } from './component/title_menu'
 import { RpcClient } from './lib/rpc_client'
 import { NoteService } from './service/note.service'
 import { isMobile } from './util/env'
@@ -17,8 +18,11 @@ class App {
   private $saveStatus = $('.save-status')!
   private $networkStatus = $('.network-status')!
   private mobileToolbar: MobileToolbar | undefined
+  private titleMenu: TitleMenu
+  readonly id: string
 
-  constructor() {
+  constructor(id: string) {
+    this.id = id
     if (isMobile) {
       document.documentElement.classList.add('mobile')
     }
@@ -35,6 +39,7 @@ class App {
       noteService: this.noteService,
       onSaveStatusChange: this.handleSaveStatusChange,
     })
+    this.titleMenu = new TitleMenu($('.title-menu') as HTMLSelectElement, id)
 
     if (isMobile) {
       this.mobileToolbar = new MobileToolbar($('.mobile-toolbar')!, this.editor)
@@ -51,6 +56,7 @@ class App {
 
     this.editor.init()
     this.mobileToolbar?.init()
+    this.titleMenu.init()
   }
 
   private handleSaveStatusChange = (isSaving: boolean) => {
@@ -62,7 +68,7 @@ const id = decodeURIComponent(location.pathname.slice(1))
 if (id === '') {
   location.replace('/' + generatePageId())
 } else {
-  const app = new App()
+  const app = new App(id)
   app.init()
 }
 
