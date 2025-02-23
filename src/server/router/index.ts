@@ -48,10 +48,6 @@ export const routes = (noteService: NoteService) => {
     const ga = process.env.GOOGLE_ANALYTICS_ID
     const safeNoteId = encodeHtml(noteId)
     const html = indexHtml
-      .replace(
-        '<!-- %script% -->',
-        `<script>window.__note = ${JSON.stringify(note.note)}</script>`,
-      )
       .replace('<title>1paper</title>', `<title>${safeNoteId}·1paper</title>`)
       .replace(
         '<!-- %google-analytics% -->',
@@ -66,6 +62,11 @@ export const routes = (noteService: NoteService) => {
   gtag('config',${JSON.stringify(ga)});
 </script>`
           : '',
+      )
+      .replace('<!-- %title% -->', `${safeNoteId}`)
+      .replace(
+        '<!-- %script% -->',
+        `<script>window.__note = ${JSON.stringify(note.note)}</script>`,
       )
 
     return html
@@ -135,6 +136,7 @@ export const routes = (noteService: NoteService) => {
       const html = await renderIndexHtml(noteId)
       ctx.body = html
       ctx.type = 'text/html'
+      ctx.header['Cache-Control'] = 'no-store, no-cache, must-revalidate'
     })
 
   return router.routes()
