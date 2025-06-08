@@ -9,3 +9,5 @@ node_modules
 /common
 /data
 personal.todo
+
+.env.sh
