@@ -19,6 +19,12 @@ function encodeHtml(str: string): string {
     .replace(/`/g, '&#x60;')
     .replace(/=/g, '&#x3D;')
 }
+function escapeScript(str: string): string {
+  return str
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/-->/g, '--\\u003e')
+}
 
 function makeManifest(path?: string | undefined) {
   const manifest = {
@@ -66,7 +72,9 @@ export const routes = (noteService: NoteService) => {
       .replace('<!-- %title% -->', `${safeNoteId}`)
       .replace(
         '<!-- %script% -->',
-        `<script>window.__note = ${JSON.stringify(note.note)}</script>`,
+        `<script>window.__note = ${escapeScript(
+          JSON.stringify(note.note),
+        )}</script>`,
       )
 
     return html
