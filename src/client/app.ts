@@ -94,6 +94,8 @@ class AppVC implements ViewController {
     this.themeService.on('themeChanged', this.applyTheme.bind(this))
     this.applyTheme()
     this.applyViewAs()
+
+    document.title = `${id} - 1paper`
   }
 
   setViewAs(viewAs: 'text' | 'markdown' | 'html') {

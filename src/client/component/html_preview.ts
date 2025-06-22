@@ -13,11 +13,6 @@ export class HtmlPreview implements ViewController {
         // @ts-expect-error
         sandbox: 'allow-scripts',
         referrerPolicy: 'no-referrer',
-        style: {
-          width: '100%',
-          height: '100%',
-          border: 'none',
-        },
       },
       [],
     )
