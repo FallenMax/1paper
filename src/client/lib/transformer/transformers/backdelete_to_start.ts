@@ -1,4 +1,4 @@
-import { CURSOR, Transformer } from '../transformer.type'
+import { CURSOR, TextTransformer } from '../transformer.type'
 
 // ===
 //       []
@@ -6,7 +6,7 @@ import { CURSOR, Transformer } from '../transformer.type'
 // []
 // ===
 
-export const backDeleteToStart: Transformer = (state) => {
+export const backDeleteToStart: TextTransformer = (state) => {
   const reg = new RegExp(`^( +)${CURSOR}(.*)$`, 'm')
   const match = reg.exec(state)
   if (match) {

@@ -1,19 +1,21 @@
 import hashString from 'string-hash'
 import { ErrorCode } from '../../common/error'
+import { EventEmitter } from '../../common/event'
 import { applyPatch, createPatch, merge3, Patch } from '../../common/lib/diff3'
 import { getTransformer } from '../lib/transformer/transformer'
-import { END, START, Transformer } from '../lib/transformer/transformer.type'
+import { END, START, TextTransformer } from '../lib/transformer/transformer.type'
 import { NoteService } from '../service/note.service'
+import { h } from '../util/dom'
 import { isDebugging } from '../util/env'
 import { UserError } from '../util/error'
+import { ViewController } from '../util/view_controller'
+import './editor.css'
 
 const noop = (_error?: any) => {}
 
 const showError = (e: any) => {
   console.error(e)
-  window.alert(
-    (e && e.errmsg) || 'Unknown error occurred, please refresh to retry.',
-  )
+  window.alert((e && e.errmsg) || 'Unknown error occurred, please refresh to retry.')
 }
 
 // attempt to set textarea value while preserving selected range
@@ -28,345 +30,335 @@ const setTextareaValue = (textarea: HTMLTextAreaElement, value: string) => {
   const end = textarea.selectionEnd
 
   const prevWithSelectionMark =
-    prev.substring(0, start) +
-    START +
-    prev.substring(start, end) +
-    END +
-    prev.substring(end)
-  const nextWithSelectingMark =
-    merge3(next, prev, prevWithSelectionMark) || next + START + END
-  const [before, , between, , after] = nextWithSelectingMark.split(
-    new RegExp(`(${START}|${END})`, 'mg'),
-  )
+    prev.substring(0, start) + START + prev.substring(start, end) + END + prev.substring(end)
+  const nextWithSelectingMark = merge3(next, prev, prevWithSelectionMark) || next + START + END
+  const [before, , between, , after] = nextWithSelectingMark.split(new RegExp(`(${START}|${END})`, 'mg'))
   textarea.value = [before, between, after].join('')
   textarea.setSelectionRange(before.length, before.length + between.length)
 }
 
-export interface EditorProps {
+export interface EditorOptions {
   id: string
   noteService: NoteService
   onSaveStatusChange: (isSaving: boolean) => void
 }
 
-export class Editor {
-  $textarea: HTMLTextAreaElement
-  private teardown: () => void = () => {}
-  private onInput = () => {}
+export class Editor
+  extends EventEmitter<{
+    localNoteUpdated: void
+  }>
+  implements ViewController
+{
+  dom: HTMLTextAreaElement
 
-  constructor(textarea: HTMLTextAreaElement, private props: EditorProps) {
-    this.$textarea = textarea
+  //-------------- State Properties --------------
+  /** note versions */
+  private common = ''
+  private remote = ''
+
+  /** branch status */
+  private remoteUpdated = false
+  private localUpdated = false
+  private remoteStale = false
+
+  /** operation status */
+  private operation: 'idle' | 'push' | 'pull' = 'idle'
+
+  /** special conditions */
+  private isCompositing = false
+
+  /** timers */
+  private syncTimer: number | undefined
+  private periodicSyncTimer: number = 0
+  private disableTimer: number = 0
+
+  constructor(private options: EditorOptions) {
+    super()
+    this.dom = h('textarea', {
+      className: 'editor',
+      spellcheck: false,
+      disabled: true,
+      oninput: () => {
+        this.localUpdated = true
+        this.deferSync()
+        this.emit('localNoteUpdated', undefined)
+      },
+      // @ts-expect-error
+      oncompositionstart: () => {
+        this.isCompositing = true
+      },
+      oncompositionend: () => {
+        this.isCompositing = false
+      },
+      onkeydown: (e) => {
+        if (this.isCompositing) {
+          return
+        }
+
+        const { selectionStart, selectionEnd } = this.dom
+        const hasSelection = selectionStart !== selectionEnd
+        const transformer = getTransformer(e, hasSelection)
+        if (transformer) {
+          const applied = this.transformText(transformer)
+          if (applied) {
+            e.preventDefault()
+          }
+        }
+      },
+    })
   }
 
+  //-------------- Initialization --------------
   async init() {
-    //-------------- state --------------
-    // note versions
-    let common = ''
-    let remote = ''
-
-    // branch status
-    let remoteUpdated = false
-    let localUpdated = false
-    let remoteStale = false
-
-    // operation status
-    let operation = 'idle' as 'idle' | 'push' | 'pull'
-    let disableTimer: number
-    const setOperation = (op: 'idle' | 'push' | 'pull') => {
-      operation = op
-      if (op === 'idle') {
-        window.clearTimeout(disableTimer)
-        this.$textarea.disabled = false
-      } else {
-        window.clearTimeout(disableTimer)
-        disableTimer = window.setTimeout(() => {
-          this.$textarea.disabled = true
-        }, 1000 * 10)
-      }
-    }
-
-    // special conditions
-    let isCompositing = false
-
-    //-------------- note operations --------------
-    const pushLocal = async (callback = noop) => {
-      if (isDebugging) {
-        console.info('operation:pushLocal')
-      }
-      try {
-        const current = this.$textarea.value
-        const patch = createPatch(remote, current)
-        const hash = hashString(current)
-
-        await this.props.noteService.saveNote(this.props.id, patch, hash)
-
-        remote = current
-        common = current
-        remoteUpdated = false
-        remoteStale = false
-        localUpdated = current !== this.$textarea.value
-        callback()
-      } catch (e: any) {
-        if (e?.errcode) {
-          switch (e.errcode) {
-            case ErrorCode.HASH_MISMATCH:
-              remoteStale = true
-              break
-            case ErrorCode.EXCEEDED_MAX_SIZE:
-              window.alert(`Note's size exceeded limit (100,000 characters).`)
-              break
-          }
+    try {
+      const { id, noteService } = this.options
+      noteService.on('noteUpdate', this.handleNoteUpdate)
+      let note = (window as any).__note
+      if (note == null) {
+        const result = await noteService.fetchNote(id)
+        if (typeof result.note !== 'string') {
+          throw new UserError('Failed to fetch note')
         }
-        callback(e)
+        note = result.note
       }
+
+      this.dom.value = note
+      this.common = note
+      this.remote = note
+
+      this.remoteUpdated = false
+      this.localUpdated = false
+      this.remoteStale = false
+
+      this.setOperation('idle')
+      this.isCompositing = false
+
+      await noteService.subscribe(id)
+
+      window.addEventListener('beforeunload', this.handleBeforeUnload)
+      this.periodicSyncTimer = window.setInterval(() => {
+        noteService.subscribe(id) // in case server restarted and subscriptions are lost
+        this.deferSync()
+      }, 1000 * 60)
+
+      this.dom.disabled = false
+      this.emit('localNoteUpdated', undefined)
+    } catch (error) {
+      showError(error)
     }
-
-    const pullRemote = (callback = noop) => {
-      if (isDebugging) {
-        console.info('operation:pullRemote')
-      }
-      this.props.noteService
-        .fetchNote(this.props.id)
-        .then(({ note }) => {
-          remote = note
-          remoteStale = false
-          remoteUpdated = false
-        })
-        .then(callback)
-        .catch(callback)
-    }
-
-    const rebaseLocal = (callback = noop) => {
-      if (isDebugging) {
-        console.info('operation:rebaseLocal')
-      }
-      let rebasedLocal = merge3(remote, common, this.$textarea.value)
-      if (rebasedLocal == null) {
-        console.warn('failed to merge, discarding local note :(')
-        rebasedLocal = remote
-      }
-      setTextareaValue(this.$textarea, rebasedLocal)
-      common = remote
-      remoteUpdated = false
-      localUpdated = true
-
-      callback()
-    }
-
-    const forwardLocal = (callback = noop) => {
-      if (isDebugging) {
-        console.info('operation:forwardLocal')
-      }
-      setTextareaValue(this.$textarea, remote)
-      common = remote
-      remoteUpdated = false
-      callback()
-    }
-
-    /** pattern match current state and exec corresponding sync operation */
-    const requestSync = () => {
-      if (remoteStale) {
-        if (operation !== 'idle') {
-          deferSync()
-          return
-        }
-        setOperation('pull')
-        this.props.onSaveStatusChange(true)
-        pullRemote(() => {
-          setOperation('idle')
-          this.props.onSaveStatusChange(false)
-          requestSync()
-        })
-        return
-      }
-
-      if (localUpdated && remoteUpdated) {
-        if (isCompositing) {
-          deferSync()
-          return
-        }
-        rebaseLocal(requestSync)
-        return
-      }
-
-      if (localUpdated) {
-        if (operation !== 'idle' || isCompositing) {
-          deferSync()
-          return
-        }
-        setOperation('push')
-        this.props.onSaveStatusChange(true)
-        this.$textarea.disabled = false
-        pushLocal((error) => {
-          if (error) {
-            console.error(error)
-            setOperation('idle')
-            deferSync()
-            this.$textarea.disabled = true
-            return
-          }
-          setOperation('idle')
-          this.props.onSaveStatusChange(false)
-          this.$textarea.disabled = false
-          requestSync()
-        })
-        return
-      }
-
-      if (remoteUpdated) {
-        if (isCompositing) {
-          deferSync()
-          return
-        }
-        forwardLocal(requestSync)
-        return
-      }
-    }
-
-    let syncTimer: number | undefined
-    const deferSync = () => {
-      if (isDebugging) {
-        console.info('deferSync')
-      }
-      clearTimeout(syncTimer)
-      syncTimer = window.setTimeout(requestSync, 100)
-    }
-
-    //-------------- event handlers --------------
-    const onCompositingStart = () => {
-      isCompositing = true
-    }
-    const onCompositingEnd = () => {
-      isCompositing = false
-    }
-    const onInput = () => {
-      localUpdated = true
-      deferSync()
-    }
-    this.onInput = onInput
-
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (isCompositing) {
-        return
-      }
-
-      const { selectionStart, selectionEnd } = this.$textarea
-      const hasSelection = selectionStart !== selectionEnd
-      const transformer = getTransformer(e, hasSelection)
-      if (transformer) {
-        const applied = this.applyTransformer(transformer)
-        if (applied) {
-          e.preventDefault()
-        }
-      }
-    }
-
-    const onNoteUpdate = (params: { h: number; p: Patch }) => {
-      const { h: hash, p: patch } = params
-      const note = applyPatch(remote, patch)
-      const verified = note != null && hashString(note) === hash
-      if (verified) {
-        remote = note!
-        remoteUpdated = true
-        remoteStale = false
-      } else {
-        remoteStale = true
-      }
-      requestSync()
-    }
-    this.props.noteService.on('noteUpdate', onNoteUpdate)
-
-    const onBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (localUpdated) {
-        const message = 'Your change has not been saved, quit?'
-        e.returnValue = message // Gecko, Trident, Chrome 34+
-        return message // Gecko, WebKit, Chrome <34
-      }
-    }
-
-    let periodicSyncTimer: number
-    const start = async () => {
-      try {
-        let note = (window as any).__note
-        if (note == null) {
-          const result = await this.props.noteService.fetchNote(this.props.id)
-          if (typeof result.note !== 'string') {
-            throw new UserError('Failed to fetch note')
-          }
-          note = result.note
-        }
-
-        this.$textarea.value = note
-        common = note
-        remote = note
-
-        remoteUpdated = false
-        localUpdated = false
-        remoteStale = false
-
-        setOperation('idle')
-        isCompositing = false
-
-        await this.props.noteService.subscribe(this.props.id)
-
-        this.$textarea.addEventListener('compositionstart', onCompositingStart)
-        this.$textarea.addEventListener('compositionend', onCompositingEnd)
-        this.$textarea.addEventListener('keydown', onKeyDown)
-        this.$textarea.addEventListener('input', onInput)
-        window.addEventListener('beforeunload', onBeforeUnload)
-        periodicSyncTimer = window.setInterval(() => {
-          this.props.noteService.subscribe(this.props.id) // in case server restarted and subscriptions are lost
-          deferSync()
-        }, 1000 * 60)
-
-        this.$textarea.disabled = false
-      } catch (error) {
-        showError(error)
-      }
-    }
-
-    this.teardown = () => {
-      this.$textarea.removeEventListener('compositionstart', onCompositingStart)
-      this.$textarea.removeEventListener('compositionend', onCompositingEnd)
-      this.$textarea.removeEventListener('keydown', onKeyDown)
-      this.$textarea.removeEventListener('input', onInput)
-      window.removeEventListener('beforeunload', onBeforeUnload)
-      window.clearInterval(periodicSyncTimer)
-
-      this.props.noteService.off('noteUpdate', onNoteUpdate)
-      this.props.noteService.unsubscribe(this.props.id)
-    }
-
-    start()
   }
-
   destroy() {
-    this.teardown()
+    window.removeEventListener('beforeunload', this.handleBeforeUnload)
+    window.clearInterval(this.periodicSyncTimer)
+
+    this.options.noteService.off('noteUpdate', this.handleNoteUpdate)
+    this.options.noteService.unsubscribe(this.options.id)
   }
 
-  applyTransformer(transformer: Transformer): boolean {
-    const $textarea = this.$textarea
+  get localNote() {
+    return this.dom.value
+  }
+
+  //-------------- Operation Methods --------------
+  private setOperation(op: 'idle' | 'push' | 'pull') {
+    this.operation = op
+    if (op === 'idle') {
+      window.clearTimeout(this.disableTimer)
+      this.dom.disabled = false
+    } else {
+      window.clearTimeout(this.disableTimer)
+      this.disableTimer = window.setTimeout(() => {
+        this.dom.disabled = true
+      }, 1000 * 10)
+    }
+  }
+
+  private async pushLocal(callback = noop) {
+    if (isDebugging) {
+      console.info('operation:pushLocal')
+    }
+    try {
+      const current = this.dom.value
+      const patch = createPatch(this.remote, current)
+      const hash = hashString(current)
+
+      await this.options.noteService.saveNote(this.options.id, patch, hash)
+
+      this.remote = current
+      this.common = current
+      this.remoteUpdated = false
+      this.remoteStale = false
+      this.localUpdated = current !== this.dom.value
+      callback()
+    } catch (e: any) {
+      if (e?.errcode) {
+        switch (e.errcode) {
+          case ErrorCode.HASH_MISMATCH:
+            this.remoteStale = true
+            break
+          case ErrorCode.EXCEEDED_MAX_SIZE:
+            window.alert(`Note's size exceeded limit (100,000 characters).`)
+            break
+        }
+      }
+      callback(e)
+    }
+  }
+
+  private pullRemote(callback = noop) {
+    if (isDebugging) {
+      console.info('operation:pullRemote')
+    }
+    this.options.noteService
+      .fetchNote(this.options.id)
+      .then(({ note }) => {
+        this.remote = note
+        this.remoteStale = false
+        this.remoteUpdated = false
+      })
+      .finally(callback)
+  }
+
+  private rebaseLocal(callback = noop) {
+    if (isDebugging) {
+      console.info('operation:rebaseLocal')
+    }
+    let rebasedLocal = merge3(this.remote, this.common, this.dom.value)
+    if (rebasedLocal == null) {
+      console.warn('failed to merge, discarding local note :(')
+      rebasedLocal = this.remote
+    }
+    setTextareaValue(this.dom, rebasedLocal)
+    this.common = this.remote
+    this.remoteUpdated = false
+    this.localUpdated = true
+
+    this.emit('localNoteUpdated', undefined)
+    callback()
+  }
+
+  private forwardLocal(callback = noop) {
+    if (isDebugging) {
+      console.info('operation:forwardLocal')
+    }
+    setTextareaValue(this.dom, this.remote)
+    this.common = this.remote
+    this.remoteUpdated = false
+    this.emit('localNoteUpdated', undefined)
+    callback()
+  }
+
+  /** pattern match current state and exec corresponding sync operation */
+  private requestSync = () => {
+    if (this.remoteStale) {
+      if (this.operation !== 'idle') {
+        this.deferSync()
+        return
+      }
+      this.setOperation('pull')
+      this.options.onSaveStatusChange(true)
+      this.pullRemote(() => {
+        this.setOperation('idle')
+        this.options.onSaveStatusChange(false)
+        this.requestSync()
+      })
+      return
+    }
+
+    if (this.localUpdated && this.remoteUpdated) {
+      if (this.isCompositing) {
+        this.deferSync()
+        return
+      }
+      this.rebaseLocal(this.requestSync)
+      return
+    }
+
+    if (this.localUpdated) {
+      if (this.operation !== 'idle' || this.isCompositing) {
+        this.deferSync()
+        return
+      }
+      this.setOperation('push')
+      this.options.onSaveStatusChange(true)
+      this.dom.disabled = false
+      this.pushLocal((error) => {
+        if (error) {
+          console.error(error)
+          this.setOperation('idle')
+          this.deferSync()
+          this.dom.disabled = true
+          return
+        }
+        this.setOperation('idle')
+        this.options.onSaveStatusChange(false)
+        this.dom.disabled = false
+        this.requestSync()
+      })
+      return
+    }
+
+    if (this.remoteUpdated) {
+      if (this.isCompositing) {
+        this.deferSync()
+        return
+      }
+      this.forwardLocal(this.requestSync)
+      return
+    }
+  }
+
+  private deferSync() {
+    if (isDebugging) {
+      console.info('deferSync')
+    }
+    clearTimeout(this.syncTimer)
+    this.syncTimer = window.setTimeout(this.requestSync, 100)
+  }
+
+  //-------------- Event Handlers --------------
+
+  private handleNoteUpdate = (params: { h: number; p: Patch }) => {
+    const { h: hash, p: patch } = params
+    const note = applyPatch(this.remote, patch)
+    const verified = note != null && hashString(note) === hash
+    if (verified) {
+      this.remote = note!
+      this.remoteUpdated = true
+      this.remoteStale = false
+    } else {
+      this.remoteStale = true
+    }
+    this.requestSync()
+  }
+
+  private handleBeforeUnload = (e: BeforeUnloadEvent) => {
+    if (this.localUpdated) {
+      const message = 'Your change has not been saved, quit?'
+      e.returnValue = message // Gecko, Trident, Chrome 34+
+      return message // Gecko, WebKit, Chrome <34
+    }
+  }
+
+  transformText(transformer: TextTransformer): boolean {
+    const $textarea = this.dom
 
     const value = $textarea.value
     const start = $textarea.selectionStart
     const end = $textarea.selectionEnd
 
-    const state = [
-      value.substring(0, start),
-      START,
-      value.substring(start, end),
-      END,
-      value.substring(end),
-    ].join('')
+    const state = [value.substring(0, start), START, value.substring(start, end), END, value.substring(end)].join('')
 
     const transformed = transformer(state)
 
     if (transformed != null) {
-      const [before, _start, between, _end, after] = transformed.split(
-        new RegExp(`(${START}|${END})`, 'mg'),
-      )
+      const [before, _start, between, _end, after] = transformed.split(new RegExp(`(${START}|${END})`, 'mg'))
       $textarea.value = [before, between, after].join('')
       $textarea.setSelectionRange(before.length, before.length + between.length)
-      this.onInput()
+
+      this.localUpdated = true
+      this.deferSync()
+
       return true
     }
     return false

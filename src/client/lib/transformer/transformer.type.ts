@@ -7,7 +7,7 @@ export interface Keys {
   alt?: boolean
 }
 
-export type Transformer = (state: EditorState) => EditorState | undefined
+export type TextTransformer = (state: EditorState) => EditorState | undefined
 
 export const START = '\u0000'
 export const END = '\u0001'

@@ -1,26 +1,47 @@
 import { deindent } from '../lib/transformer/transformers/deindent'
 import { indent } from '../lib/transformer/transformers/indent'
 import { toggleList } from '../lib/transformer/transformers/toggle_list'
+import { h } from '../util/dom'
+import { ViewController } from '../util/view_controller'
 import { Editor } from './editor'
+import './mobile_toolbar.css'
 
-export class MobileToolbar {
+export class MobileToolbar implements ViewController {
   private resizeObserver?: ResizeObserver
   private toolbarHeight = 48
 
-  constructor(private $toolbar: HTMLElement, private editor: Editor) {}
-  init() {
-    // Bind event listeners
-    {
-      const $indent = this.$toolbar.querySelector('.indent')
-      const $deIndent = this.$toolbar.querySelector('.deindent')
-      const $toggleList = this.$toolbar.querySelector('.toggle-list')
-      $indent?.addEventListener('click', this.handleIndent as EventListener)
-      $deIndent?.addEventListener('click', this.handleDeIndent as EventListener)
-      $toggleList?.addEventListener(
-        'click',
-        this.handleToggleList as EventListener,
-      )
-    }
+  dom: HTMLElement
+  constructor(private editor: Editor) {
+    this.dom = h('div', { className: 'mobile-toolbar' }, [
+      h('button', {
+        className: 'indent',
+        textContent: 'Indent',
+        onclick: (e: Event) => {
+          e.preventDefault()
+          this.editor.dom.focus()
+          this.editor.transformText(indent)
+        },
+      }),
+
+      h('button', {
+        className: 'deindent',
+        textContent: 'Deindent',
+        onclick: (e: Event) => {
+          e.preventDefault()
+          this.editor.dom.focus()
+          this.editor.transformText(deindent)
+        },
+      }),
+      h('button', {
+        className: 'toggle-list',
+        textContent: 'List',
+        onclick: (e: Event) => {
+          e.preventDefault()
+          this.editor.dom.focus()
+          this.editor.transformText(toggleList)
+        },
+      }),
+    ])
 
     // Re-position the toolbar when the viewport changes
     {
@@ -32,7 +53,7 @@ export class MobileToolbar {
 
     // Show/hide the toolbar when the editor is focused/blurred
     {
-      const $textarea = this.editor.$textarea
+      const $textarea = this.editor.dom
       $textarea.addEventListener('focus', () => {
         this.toggle()
       })
@@ -45,32 +66,14 @@ export class MobileToolbar {
     }
   }
   private toggle = () => {
-    const isFocused = document.activeElement === this.editor.$textarea
-    this.$toolbar.style.display = isFocused ? 'flex' : 'none'
+    const isFocused = document.activeElement === this.editor.dom
+    this.dom.style.display = isFocused ? 'flex' : 'none'
   }
 
   private rePosition = () => {
     const viewport = window.visualViewport!
     const offsetTop = viewport.height + viewport.pageTop
-    this.$toolbar.style.top = `${offsetTop - this.toolbarHeight}px`
-  }
-
-  private handleIndent = (e: Event) => {
-    e.preventDefault()
-    this.editor.$textarea.focus()
-    this.editor.applyTransformer(indent)
-  }
-
-  private handleDeIndent = (e: Event) => {
-    e.preventDefault()
-    this.editor.$textarea.focus()
-    this.editor.applyTransformer(deindent)
-  }
-
-  private handleToggleList = (e: Event) => {
-    e.preventDefault()
-    this.editor.$textarea.focus()
-    this.editor.applyTransformer(toggleList)
+    this.dom.style.top = `${offsetTop - this.toolbarHeight}px`
   }
 
   destroy() {

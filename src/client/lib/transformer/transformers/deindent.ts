@@ -1,4 +1,4 @@
-import { END, START, Transformer } from '../transformer.type'
+import { END, START, TextTransformer } from '../transformer.type'
 // ===
 //     xxx[yyy
 //     yyyyyyy
@@ -13,7 +13,7 @@ import { END, START, Transformer } from '../transformer.type'
 
 const deindentLine = (str: string) => str.replace(/^ /, '').replace(/^ /, '')
 
-export const deindent: Transformer = (state) => {
+export const deindent: TextTransformer = (state) => {
   const lines = state.split('\n')
 
   const cursorStartAt = lines.findIndex((line) => line.includes(START))

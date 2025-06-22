@@ -1,103 +1,105 @@
-import { assert } from '../../common/assert'
+import { NoteService } from '../service/note.service'
+import { h } from '../util/dom'
+import { ViewController } from '../util/view_controller'
+import './title_menu.css'
 
-export class TitleMenu {
-  constructor(private $titleMenu: HTMLSelectElement, private id: string) {}
+export type TitleMenuOptions = {
+  onSetTheme: (theme: 'light' | 'dark' | 'system') => void
+  onSetViewAs: (viewAs: 'text' | 'markdown' | 'html') => void
+}
+export class TitleMenu implements ViewController {
+  dom!: HTMLSelectElement
+  id: string
+  private $recentVisited: HTMLOptGroupElement
+  private options: TitleMenuOptions
+  constructor(id: string, private noteService: NoteService, options: TitleMenuOptions) {
+    this.id = id
+    this.options = options
+    this.dom = h(
+      'select',
+      {
+        className: 'title-menu',
+        onchange: (e) => {
+          const $option = e.target as HTMLSelectElement
+          const value = $option.value
+          switch (value) {
+            case 'go-to': {
+              const newId = window.prompt('Enter a note id to create/open:', this.id)
+              if (newId) {
+                this.goToNote(newId)
+              }
+              break
+            }
+            case 'clear-recent': {
+              this.noteService.clearRecentVisited()
+              this.applyRecentVisited()
+              break
+            }
+            case 'theme:light':
+            case 'theme:dark':
+            case 'theme:system': {
+              const theme = value.split(':')[1]
+              this.options.onSetTheme(theme as 'light' | 'dark' | 'system')
+              break
+            }
+            case 'view-as:text':
+            case 'view-as:markdown':
+            case 'view-as:html': {
+              const viewAs = value.split(':')[1]
+              this.options.onSetViewAs(viewAs as 'text' | 'markdown' | 'html')
+              break
+            }
+            default: {
+              if (value.startsWith('recent:')) {
+                this.goToNote(value.slice(7))
+              }
+              break
+            }
+          }
+          e.preventDefault()
+          e.stopPropagation()
+          this.dom.value = 'current'
+        },
+      },
+      [
+        h('option', { value: 'current', textContent: this.id }),
+        h('option', { value: 'go-to', textContent: '📝 Create or open...' }),
+        (this.$recentVisited = h('optgroup', { className: 'recent-visited', label: 'Recent:' })),
+        h('optgroup', { className: 'theme', label: 'Theme:' }, [
+          h('option', { value: 'theme:light', textContent: 'Light' }),
+          h('option', { value: 'theme:dark', textContent: 'Dark' }),
+          h('option', { value: 'theme:system', textContent: 'System' }),
+        ]),
+        h('optgroup', { className: 'view-as', label: 'View as:' }, [
+          h('option', { value: 'view-as:text', textContent: 'Text' }),
+          h('option', { value: 'view-as:markdown', textContent: 'Markdown' }),
+          h('option', { value: 'view-as:html', textContent: 'HTML' }),
+        ]),
+      ],
+    )
+  }
 
   init() {
-    const $current = this.$titleMenu.querySelector(`option[value="current"]`)!
-    if (!$current.textContent) {
-      $current.textContent = this.id
-    }
-
-    // show recent visited
-    {
-      this.saveRecentVisited()
-      this.renderRecentVisited()
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'visited') {
-          this.renderRecentVisited()
-        }
-      })
-    }
-
-    // handle user action
-    this.$titleMenu.addEventListener('change', (e) => {
-      const $option = e.target as HTMLSelectElement
-      const value = $option.value
-      if (value === 'go-to') {
-        const newId = window.prompt('Enter a note id to create/open:', this.id)
-        if (newId) {
-          this.goToNote(newId)
-        }
-      } else if (value === 'clear-recent') {
-        this.clearRecentVisited()
-        this.renderRecentVisited()
-      } else if (value.startsWith('recent:')) {
-        this.goToNote(value.slice(7))
-      }
-      e.preventDefault()
-      e.stopPropagation()
-      this.$titleMenu.value = 'current'
-    })
+    this.noteService.markVisited(this.id)
+    this.noteService.on('recentVisitedChanged', this.applyRecentVisited.bind(this))
+    this.applyRecentVisited()
   }
 
   goToNote(id: string) {
     location.assign('/' + id)
   }
 
-  renderRecentVisited() {
-    const visited = this.loadRecentVisited().filter((id) => id !== this.id)
-    const $recentVisited = this.$titleMenu.querySelector('.recent-visited')!
-    $recentVisited.innerHTML = ''
+  applyRecentVisited() {
+    const { $recentVisited } = this
+    const visited = this.noteService.getRecentVisited().filter((id) => id !== this.id)
+
     if (visited.length > 0) {
-      visited.forEach((id) => {
-        const $option = document.createElement('option')
-        $option.value = `recent:${id}`
-        $option.textContent = `📄 ${id}`
-        $recentVisited.appendChild($option)
-      })
-      const $clear = document.createElement('option')
-      $clear.value = 'clear-recent'
-      $clear.textContent = '🗑️ Clear recent'
-      $recentVisited.appendChild($clear)
-    } else {
-      const $option = document.createElement('option')
-      $option.value = '(Empty)'
-      $option.textContent = '(Empty)'
-      $option.disabled = true
-      $recentVisited.appendChild($option)
-    }
-  }
-
-  saveRecentVisited() {
-    const visited = this.loadRecentVisited()
-    const existIndex = visited.findIndex((id) => id === this.id)
-    if (existIndex !== -1) {
-      visited.splice(existIndex, 1)
-    }
-    visited.unshift(this.id)
-    try {
-      localStorage.setItem('visited', JSON.stringify(visited))
-    } catch (error) {}
-  }
-
-  loadRecentVisited(): string[] {
-    let visited: string[]
-    try {
-      visited = JSON.parse(localStorage.getItem('visited') || '[]')
-      assert(
-        Array.isArray(visited) && visited.every((id) => typeof id === 'string'),
-        'expect visited to be an array of strings',
+      $recentVisited.replaceChildren(
+        ...visited.map((id) => h('option', { value: `recent:${id}`, textContent: `📄 ${id}` })),
+        h('option', { value: 'clear-recent', textContent: '🗑️ Clear recent' }),
       )
-      visited = visited.slice(0, 20)
-    } catch (error) {
-      visited = []
+    } else {
+      $recentVisited.replaceChildren(h('option', { value: '(Empty)', textContent: '(Empty)', disabled: true }))
     }
-    return visited
-  }
-  clearRecentVisited() {
-    try {
-      localStorage.removeItem('visited')
-    } catch (error) {}
   }
 }

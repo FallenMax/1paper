@@ -1,9 +1,6 @@
-import { BULLET, CURSOR, SELECTION, Transformer } from '../transformer.type'
+import { BULLET, CURSOR, SELECTION, TextTransformer } from '../transformer.type'
 
-const BULLET_LINE_REG = new RegExp(
-  `^( *)(${BULLET})?(.*)${SELECTION}(.*)$`,
-  'm',
-)
+const BULLET_LINE_REG = new RegExp(`^( *)(${BULLET})?(.*)${SELECTION}(.*)$`, 'm')
 
 // ===
 //   - xxx[yyyy]zzz
@@ -12,7 +9,7 @@ const BULLET_LINE_REG = new RegExp(
 //   - []zzz
 // ===
 
-export const addNewLine: Transformer = (state) => {
+export const addNewLine: TextTransformer = (state) => {
   const match = BULLET_LINE_REG.exec(state)
   if (match) {
     const [matched, leadingSpaces, bullet, beforeCursor, afterCursor] = match

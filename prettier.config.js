@@ -4,4 +4,5 @@ module.exports = {
   arrowParens: 'always',
   tabWidth: 2,
   trailingComma: 'all',
+  printWidth: 120,
 }

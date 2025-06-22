@@ -1,4 +1,4 @@
-import { END, START, Transformer } from '../transformer.type'
+import { END, START, TextTransformer } from '../transformer.type'
 
 // change to list
 // ===
@@ -40,7 +40,7 @@ const changeToBlockItem = (line: string) => {
   })
 }
 
-export const toggleList: Transformer = (state) => {
+export const toggleList: TextTransformer = (state) => {
   const lines = state.split('\n')
 
   const cursorStartAt = lines.findIndex((line) => line.includes(START))

@@ -1,0 +1,15 @@
+.markdown-preview {
+  position: absolute;
+  inset: 2px;
+  z-index: 4;
+
+  padding: 45px;
+  resize: none;
+  background-color: var(--text-bg);
+  color: var(--text-fg);
+  line-height: 1.5;
+  font-size: 1.1em;
+  font-family: monospace;
+
+  overflow: auto;
+}

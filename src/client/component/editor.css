@@ -1,0 +1,16 @@
+.editor {
+  display: flex;
+  flex-grow: 1;
+  position: relative;
+
+  resize: none;
+  padding: 1em;
+  color: var(--text-fg);
+  line-height: 1.5;
+  font-size: 1.1em;
+  font-family: monospace;
+  -webkit-overflow-scrolling: touch;
+  &[disabled] {
+    color: var(--text-disabled-fg);
+  }
+}

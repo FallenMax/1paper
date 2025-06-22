@@ -1,4 +1,4 @@
-import { END, START, Transformer } from '../transformer.type'
+import { END, START, TextTransformer } from '../transformer.type'
 // ===
 //   xxx[yyy]zzz
 // ===
@@ -6,7 +6,7 @@ import { END, START, Transformer } from '../transformer.type'
 // ===
 
 const indentLine = (str: string) => '  ' + str
-export const indent: Transformer = (state) => {
+export const indent: TextTransformer = (state) => {
   const lines = state.split('\n')
 
   const cursorStartAt = lines.findIndex((line) => line.includes(START))
