@@ -9,7 +9,9 @@ const darkCssPromise = import('github-markdown-css/github-markdown-dark.css?raw'
 const lightCssPromise = import('github-markdown-css/github-markdown-light.css?raw').then((m) => m.default)
 
 export class MarkdownPreview implements ViewController {
-  static md = markdownit({})
+  static md = markdownit({
+    linkify: true,
+  })
   dom: HTMLElement
   $css: HTMLStyleElement
   constructor(private editor: Editor, private themeService: ThemeService) {
