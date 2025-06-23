@@ -44,7 +44,6 @@ class AppVC implements ViewController {
         this.themeService.setTheme(theme)
       },
       onSetViewAs: (viewAs) => {
-        console.log(`🚀 > constructor > viewAs:`, viewAs)
         this.setViewAs(viewAs)
       },
     })
