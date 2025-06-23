@@ -83,13 +83,6 @@ export class Editor
         this.deferSync()
         this.emit('localNoteUpdated', undefined)
       },
-      // @ts-expect-error
-      oncompositionstart: () => {
-        this.isCompositing = true
-      },
-      oncompositionend: () => {
-        this.isCompositing = false
-      },
       onkeydown: (e) => {
         if (this.isCompositing) {
           return
@@ -106,6 +99,8 @@ export class Editor
         }
       },
     })
+    this.dom.addEventListener('compositionstart', () => (this.isCompositing = true))
+    this.dom.addEventListener('compositionend', () => (this.isCompositing = false))
   }
 
   //-------------- Initialization --------------
