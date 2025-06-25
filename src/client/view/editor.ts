@@ -78,6 +78,7 @@ export class Editor
       className: 'editor',
       spellcheck: false,
       disabled: true,
+      value: 'Loading...',
       oninput: () => {
         this.localUpdated = true
         this.deferSync()
