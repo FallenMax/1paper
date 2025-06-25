@@ -1,5 +1,5 @@
 import markdownit from 'markdown-it'
-import { ThemeService } from '../service/theme.service'
+import { UiStore } from '../store/ui.store'
 import { h } from '../util/dom'
 import { ViewController } from '../util/view_controller'
 import { Editor } from './editor'
@@ -14,13 +14,13 @@ export class MarkdownPreview implements ViewController {
   })
   dom: HTMLElement
   $css: HTMLStyleElement
-  constructor(private editor: Editor, private themeService: ThemeService) {
+  constructor(private editor: Editor) {
     this.dom = h('div', { className: 'markdown-preview markdown-body' }, [])
 
     editor.on('localNoteUpdated', this.render.bind(this))
 
     this.render()
-    this.themeService.on('themeChanged', this.applyTheme.bind(this))
+    UiStore.shared.on('themeChanged', this.applyTheme.bind(this))
     this.$css = document.createElement('style')
     this.$css.id = 'markdown-preview-css'
     document.head.appendChild(this.$css)
@@ -34,7 +34,7 @@ export class MarkdownPreview implements ViewController {
   }
 
   private async applyTheme() {
-    const theme = this.themeService.getComputedTheme()
+    const theme = UiStore.shared.getComputedTheme()
     this.$css.textContent = await (theme === 'dark' ? darkCssPromise : lightCssPromise)
   }
 }

@@ -1,6 +1,8 @@
+import { icons } from '../icon/icons'
 import { deindent } from '../lib/transformer/transformers/deindent'
 import { indent } from '../lib/transformer/transformers/indent'
 import { toggleList } from '../lib/transformer/transformers/toggle_list'
+import { IconButton } from '../ui/icon_button'
 import { h } from '../util/dom'
 import { ViewController } from '../util/view_controller'
 import { Editor } from './editor'
@@ -11,37 +13,44 @@ export class MobileToolbar implements ViewController {
   private toolbarHeight = 48
 
   dom: HTMLElement
+  private $indent: IconButton
+  private $deindent: IconButton
+  private $toggleList: IconButton
   constructor(private editor: Editor) {
-    this.dom = h('div', { className: 'mobile-toolbar' }, [
-      h('button', {
-        className: 'indent',
-        textContent: 'Indent',
+    this.$indent = new IconButton({
+      icon: icons.chevronForwardOutline,
+      buttonOptions: {
+        title: 'Indent',
         onclick: (e: Event) => {
           e.preventDefault()
           this.editor.dom.focus()
           this.editor.transformText(indent)
         },
-      }),
-
-      h('button', {
-        className: 'deindent',
-        textContent: 'Deindent',
+      },
+    })
+    this.$deindent = new IconButton({
+      icon: icons.chevronBackOutline,
+      buttonOptions: {
+        title: 'Deindent',
         onclick: (e: Event) => {
           e.preventDefault()
           this.editor.dom.focus()
           this.editor.transformText(deindent)
         },
-      }),
-      h('button', {
-        className: 'toggle-list',
-        textContent: 'List',
+      },
+    })
+    this.$toggleList = new IconButton({
+      icon: icons.listOutline,
+      buttonOptions: {
+        title: 'Toggle list',
         onclick: (e: Event) => {
           e.preventDefault()
           this.editor.dom.focus()
           this.editor.transformText(toggleList)
         },
-      }),
-    ])
+      },
+    })
+    this.dom = h('div', { className: 'mobile-toolbar' }, [this.$deindent.dom, this.$indent.dom, this.$toggleList.dom])
 
     // Re-position the toolbar when the viewport changes
     {

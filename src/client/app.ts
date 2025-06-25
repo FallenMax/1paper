@@ -1,32 +1,32 @@
 import { ClientAPI, ServerAPI } from '../common/api.type'
 import { generatePageId } from '../common/lib/generate_id'
 import './app.css'
-import { Editor } from './component/editor'
-import { HtmlPreview } from './component/html_preview'
-import { MarkdownPreview } from './component/markdown_preview'
-import { MobileToolbar } from './component/mobile_toolbar'
-import { TitleMenu } from './component/title_menu'
 import { RpcClient } from './lib/rpc_client'
 import { NoteService } from './service/note.service'
-import { ThemeService } from './service/theme.service'
+import { UiStore } from './store/ui.store'
 import { h } from './util/dom'
 import { isMobile } from './util/env'
 import { ViewController } from './util/view_controller'
+import { Editor } from './view/editor'
+import { HtmlPreview } from './view/html_preview'
+import { MarkdownPreview } from './view/markdown_preview'
+import { MobileToolbar } from './view/mobile_toolbar'
+import { TopToolbar } from './view/top_toolbar'
 
 class AppVC implements ViewController {
   dom: HTMLElement
   private rpcClient: RpcClient<ServerAPI, ClientAPI>
   private noteService: NoteService
-  private themeService = new ThemeService()
   private editor: Editor
   private markdownPreview?: MarkdownPreview
   private htmlPreview?: HtmlPreview
   private $saveStatus: HTMLElement
-  private $networkStatus: HTMLElement
   private mobileToolbar: MobileToolbar | undefined
-  private titleMenu: TitleMenu
+  private topToolbar: TopToolbar
   readonly id: string
   private $main: HTMLElement
+  private isDisconnected = false
+  private isSaving = false
 
   constructor(id: string) {
     this.id = id
@@ -39,20 +39,14 @@ class AppVC implements ViewController {
 
     this.noteService = new NoteService(this.rpcClient)
 
-    this.titleMenu = new TitleMenu(id, this.noteService, {
-      onSetTheme: (theme) => {
-        this.themeService.setTheme(theme)
-      },
-      onSetViewAs: (viewAs) => {
-        this.setViewAs(viewAs)
-      },
-    })
+    this.topToolbar = new TopToolbar(id)
 
     this.editor = new Editor({
       id,
       noteService: this.noteService,
       onSaveStatusChange: (isSaving) => {
-        this.$saveStatus.classList.toggle('is-active', isSaving)
+        this.isSaving = isSaving
+        this.applySaveStatus()
       },
     })
 
@@ -60,19 +54,16 @@ class AppVC implements ViewController {
       this.mobileToolbar = new MobileToolbar(this.editor)
     }
 
+    const url = `${location.origin}/${id}`
     this.dom = h('div', { id: 'app' }, [
       h('header', {}, [
-        this.titleMenu.dom,
+        this.topToolbar.dom,
         h('div', { className: 'spacer' }),
-        (this.$saveStatus = h('small', { className: 'save-status', textContent: 'Saving...' })),
-        (this.$networkStatus = h('small', {
-          className: 'network-status',
-          style: { display: 'none' },
-          textContent: 'Connecting...',
-        })),
+        // h('a', { href: location.origin + '/' + id, textContent: id, className: 'note-name' }),
+        (this.$saveStatus = h('span', { className: 'save-status', textContent: 'Saving...' })),
       ]),
       (this.$main = h('main', {}, [this.editor.dom])),
-      h('footer'),
+      h('footer', {}, [h('a', { href: url, target: '_blank' }, url)]),
       this.mobileToolbar?.dom,
     ])
   }
@@ -81,46 +72,48 @@ class AppVC implements ViewController {
     document.documentElement.classList.toggle('mobile', isMobile)
 
     this.rpcClient.on('connected', () => {
-      this.$networkStatus.style.display = 'none'
+      this.isDisconnected = false
+      this.applySaveStatus()
     })
     this.rpcClient.on('disconnected', () => {
-      this.$networkStatus.style.display = 'block'
+      this.isDisconnected = true
+      this.applySaveStatus()
     })
 
     this.editor.init()
-    this.titleMenu.init()
+    this.topToolbar.init()
 
-    this.themeService.on('themeChanged', this.applyTheme.bind(this))
+    UiStore.shared.on('themeChanged', this.applyTheme.bind(this))
     this.applyTheme()
-    this.applyViewAs()
+
+    UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this))
+    this.applyViewMode()
+    this.applySaveStatus
 
     document.title = `${id} - 1paper`
   }
 
-  setViewAs(viewAs: 'text' | 'markdown' | 'html') {
-    const url = new URL(location.href)
-    const searchParams = url.searchParams
-    if (viewAs === 'markdown') {
-      searchParams.set('view', 'markdown')
-    } else if (viewAs === 'html') {
-      searchParams.set('view', 'html')
-    } else {
-      searchParams.delete('view')
-    }
-    url.search = searchParams.toString()
-    history.replaceState(null, '', url.href)
-    this.applyViewAs()
+  private applySaveStatus() {
+    const { $saveStatus } = this
+    $saveStatus.classList.toggle('is-saving', this.isSaving || this.isDisconnected)
+    $saveStatus.classList.toggle('is-error', this.isDisconnected)
+    $saveStatus.textContent = this.isDisconnected ? 'Connecting...' : 'Saving...'
   }
+  private async applyViewMode() {
+    const viewMode = UiStore.shared.viewMode
 
-  private async applyViewAs() {
-    const url = new URL(location.href)
-    const searchParams = url.searchParams
-    const view = searchParams.get('view')
+    if (viewMode === 'text') {
+      if (!this.$main.contains(this.editor.dom)) {
+        this.$main.appendChild(this.editor.dom)
+      }
+    } else {
+      this.editor.dom.remove()
+    }
 
-    if (view === 'markdown') {
+    if (viewMode === 'markdown') {
       if (!this.markdownPreview) {
-        const { MarkdownPreview } = await import('./component/markdown_preview')
-        this.markdownPreview = new MarkdownPreview(this.editor, this.themeService)
+        const { MarkdownPreview } = await import('./view/markdown_preview')
+        this.markdownPreview = new MarkdownPreview(this.editor)
       }
       if (!this.$main.contains(this.markdownPreview.dom)) {
         this.$main.appendChild(this.markdownPreview.dom)
@@ -129,9 +122,9 @@ class AppVC implements ViewController {
       this.markdownPreview?.dom.remove()
     }
 
-    if (view === 'html') {
+    if (viewMode === 'html') {
       if (!this.htmlPreview) {
-        const { HtmlPreview } = await import('./component/html_preview')
+        const { HtmlPreview } = await import('./view/html_preview')
         this.htmlPreview = new HtmlPreview(this.editor)
       }
       if (!this.$main.contains(this.htmlPreview.dom)) {
@@ -143,7 +136,7 @@ class AppVC implements ViewController {
   }
 
   private applyTheme() {
-    const theme = this.themeService.getComputedTheme()
+    const theme = UiStore.shared.getComputedTheme()
     document.documentElement.dataset.theme = theme
   }
 }

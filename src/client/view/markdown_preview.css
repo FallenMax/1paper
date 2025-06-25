@@ -1,0 +1,5 @@
+.markdown-preview {
+  padding: 1em;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}

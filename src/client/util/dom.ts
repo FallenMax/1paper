@@ -8,12 +8,13 @@ export const $ = (el: HTMLElement | Document, selector: string): HTMLElement => 
 
 type Override<T, R> = Omit<T, keyof R> & R
 
+export type ElementProps<K extends keyof HTMLElementTagNameMap> = Override<
+  Partial<HTMLElementTagNameMap[K]>,
+  { style?: Partial<CSSStyleDeclaration>; dataset?: Record<string, string> }
+>
 export function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
-  props?: Override<
-    Partial<HTMLElementTagNameMap[K]>,
-    { style?: Partial<CSSStyleDeclaration>; dataset?: Record<string, string> }
-  >,
+  props?: ElementProps<K>,
   children?: (HTMLElement | undefined)[] | string | undefined,
 ): HTMLElementTagNameMap[K]
 export function h(

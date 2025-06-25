@@ -1,0 +1,17 @@
+.mobile-toolbar {
+  position: fixed;
+  right: 4px;
+  bottom: 4px;
+  z-index: 9999;
+  background: var(--text-bg);
+  border: 1px solid var(--text-border);
+  border-radius: 8px;
+  padding: 8px;
+  gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  button {
+    width: var(--icon-size);
+    height: var(--icon-size);
+  }
+}

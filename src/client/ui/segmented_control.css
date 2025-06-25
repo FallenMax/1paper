@@ -1,0 +1,34 @@
+.segmented-control {
+  border-radius: 9999px;
+  border: 1px solid var(--text-border);
+  overflow: hidden;
+  display: flex;
+  user-select: none;
+  button {
+    appearance: none;
+    border: none;
+    background: none;
+    padding: 0px 4px;
+    height: var(--icon-size);
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    &:hover,
+    &:focus-visible {
+      color: var(--text-fg);
+    }
+    &:first-child {
+      padding-left: 6px;
+    }
+    &:last-child {
+      padding-right: 6px;
+    }
+    &:not(:last-child) {
+      border-right: 1px solid var(--text-border);
+    }
+    &.is-active {
+      background: var(--text-secondary);
+      color: var(--text-bg);
+    }
+  }
+}

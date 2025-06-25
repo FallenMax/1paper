@@ -4,15 +4,23 @@ body {
   background-color: var(--background-color);
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans',
     'Helvetica Neue', sans-serif;
-  font-size: 14px;
   line-height: 1.5;
   color: var(--text-color);
-  height: 100%;
-  height: -webkit-fill-available;
-  min-height: -webkit-fill-available;
   width: 100%;
+  height: 100%;
+  /* height: -webkit-fill-available;
+  min-height: -webkit-fill-available; */
   margin: 0;
   padding: 0;
+  interpolate-size: allow-keywords;
+}
+:root {
+  --icon-size: 14px;
+  font-size: 14px;
+  @media (max-width: 768px) {
+    --icon-size: 24px;
+    font-size: 16px;
+  }
 }
 
 html[data-theme='dark'] {
@@ -52,49 +60,61 @@ body {
 #app {
   display: flex;
   flex-direction: column;
-  align-items: baseline;
-  justify-content: stretch;
+  align-items: center;
+  justify-content: center;
   width: 800px;
   gap: 2px;
   max-width: calc(100vw - 16px);
   height: 90vh;
-  max-height: calc(100vh - 24px);
+  @media (max-width: 768px) {
+    height: calc(100vh);
+  }
 
   header {
     display: flex;
     align-self: stretch;
-    align-items: baseline;
-    gap: 4px;
-    .spacer {
-      flex-grow: 1;
+    align-items: center;
+    font-size: 1rem;
+    padding-top: 4px;
+    .note-name {
+      color: var(--text-secondary);
+      opacity: 0.5;
+      text-decoration: none;
     }
     .save-status {
-      font-size: 12px;
+      margin-left: 24px;
       color: var(--text-secondary);
       opacity: 0;
       transition: opacity 0.5s 0.5s;
-      &.is-active {
-        opacity: 1;
+      &.is-saving {
+        opacity: 0.5;
         transition: opacity 0s;
       }
+      &.is-error {
+        color: orangered;
+      }
     }
-    .network-status {
-      font-size: 12px;
-      color: orangered;
+    .spacer {
+      flex-grow: 1;
     }
   }
   main {
     display: flex;
     align-self: stretch;
     flex-grow: 1;
+    flex-shrink: 1;
+    min-height: 0;
 
     position: relative;
     &::before,
     &::after,
-    textarea {
+    > * {
       background-color: var(--text-bg);
       border-radius: 4px;
       border: 1px solid var(--text-border);
+      flex-grow: 1;
+      flex-shrink: 1;
+      min-height: 0;
     }
     &::before {
       content: '';
@@ -110,20 +130,39 @@ body {
       position: absolute;
       z-index: 2;
     }
-    textarea {
+    > * {
       z-index: 3;
     }
   }
   footer {
-    height: calc(18px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    align-self: stretch;
+    /* height: calc(18px + env(safe-area-inset-bottom, 0px)); */
+    align-items: center;
+    justify-content: center;
+    padding: 8px 0;
+    a {
+      @media (max-width: 768px) {
+        display: none;
+      }
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 1rem;
+      text-align: center;
+      /* margin-top: 12px; */
+      opacity: 0.7;
+      &:hover {
+        opacity: 1;
+      }
+    }
   }
 }
 
-html.mobile {
+/* html.mobile {
   #app {
     height: calc(100vh - 12px);
     height: -webkit-fill-available;
     max-height: calc(100vh - 12px);
     max-height: -webkit-fill-available;
   }
-}
+} */
