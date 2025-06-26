@@ -5,10 +5,7 @@ import { EventEmitter } from '../../common/event'
 type AnyFunction = (...args: any[]) => any
 export type APIMap = { [K: string]: AnyFunction }
 
-export class RpcClient<
-  ServerAPI extends APIMap,
-  ClientAPI extends APIMap,
-> extends EventEmitter<{
+export class RpcClient<ServerAPI extends APIMap, ClientAPI extends APIMap> extends EventEmitter<{
   connected: undefined
   disconnected: undefined
 }> {
@@ -16,7 +13,9 @@ export class RpcClient<
 
   constructor(clientMethods: ClientAPIHandlers<ClientAPI>) {
     super()
-    this.socket = SocketIO.io(location.origin)
+    this.socket = SocketIO.io(location.origin, {
+      transports: ['websocket'], // Skip polling, use WebSocket directly
+    })
     this.register(() => {
       this.socket.close()
     })
@@ -36,10 +35,7 @@ export class RpcClient<
     this.socket.on('disconnect', () => this.emit('disconnected', undefined))
   }
 
-  call<T extends keyof ServerAPI>(
-    method: T,
-    params: Parameters<ServerAPI[T]>[0],
-  ): Promise<ReturnType<ServerAPI[T]>> {
+  call<T extends keyof ServerAPI>(method: T, params: Parameters<ServerAPI[T]>[0]): Promise<ReturnType<ServerAPI[T]>> {
     return new Promise((resolve, reject) => {
       try {
         this.socket.emit(method as string, params, (response) => {

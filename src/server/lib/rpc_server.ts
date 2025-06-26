@@ -10,18 +10,13 @@ export type CallClientOptions = {
   exclude?: string
 }
 
-export class RpcServer<
-  ServerAPI extends RpcAPI,
-  ClientAPI extends RpcAPI,
-> extends Disposable {
+export class RpcServer<ServerAPI extends RpcAPI, ClientAPI extends RpcAPI> extends Disposable {
   private io: SocketIO.Server
 
-  constructor(
-    httpServer: http.Server,
-    serverMethods: ServerAPIHandlers<ServerAPI>,
-  ) {
+  constructor(httpServer: http.Server, serverMethods: ServerAPIHandlers<ServerAPI>) {
     super()
     this.io = new SocketIO.Server(httpServer, {
+      transports: ['websocket'], // Skip polling, use WebSocket directly
       cors: {
         origin: '*',
       },
@@ -37,8 +32,7 @@ export class RpcServer<
             const result = await handler(params, client)
             reply(result)
           } catch (error) {
-            const errcode =
-              error instanceof UserError ? error.errcode : ErrorCode.UNKNOWN
+            const errcode = error instanceof UserError ? error.errcode : ErrorCode.UNKNOWN
             console.warn('[RpcServer] Error handling: ', method, errcode)
             console.error(error)
             reply({ errcode })
@@ -65,9 +59,7 @@ export class RpcServer<
     params: Parameters<ClientAPI[T]>[0],
     { rooms = [], exclude }: CallClientOptions = {},
   ): void {
-    let target = exclude
-      ? this.io.sockets.sockets.get(exclude)
-      : this.io.sockets
+    let target = exclude ? this.io.sockets.sockets.get(exclude) : this.io.sockets
 
     if (!target) {
       throw new Error(`[RpcServer] Target not found: ${String(method)}`)
