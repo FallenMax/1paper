@@ -52,7 +52,7 @@ export class Server extends Disposable {
       }),
     )
 
-    app.use(routes())
+    app.use(routes(this.noteService))
     this.httpServer = new http.Server(app.callback())
 
     // rpc server

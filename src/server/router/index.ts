@@ -1,7 +1,27 @@
 import Router from '@koa/router'
+import { readFileSync } from 'fs'
 import send from 'koa-send'
+import path from 'path'
 import { generatePageId } from '../../common/lib/generate_id'
 import { config } from '../config'
+import { NoteService } from '../service/note.service'
+
+let indexHtml = readFileSync(path.join(config.staticDir, 'index.html'), 'utf-8')
+
+function encodeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\//g, '&#x2F;')
+    .replace(/`/g, '&#x60;')
+    .replace(/=/g, '&#x3D;')
+}
+function escapeScript(str: string): string {
+  return str.replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/-->/g, '--\\u003e')
+}
 
 function makeManifest(path?: string | undefined) {
   const manifest = {
@@ -23,8 +43,34 @@ function makeManifest(path?: string | undefined) {
   return manifest
 }
 
-export const routes = () => {
+export const routes = (noteService: NoteService) => {
   const router = new Router()
+
+  async function renderIndexHtml(noteId: string) {
+    const note = await noteService.getNote(noteId)
+    const ga = process.env.GOOGLE_ANALYTICS_ID
+    const safeNoteId = encodeHtml(noteId)
+    const html = indexHtml
+      .replace('<title>1paper</title>', `<title>${safeNoteId}·1paper</title>`)
+      .replace(
+        '<!-- %google-analytics% -->',
+        ga
+          ? `<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${ga}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config',${JSON.stringify(ga)});
+</script>`
+          : '',
+      )
+      .replace('<!-- %title% -->', `${safeNoteId}`)
+      .replace('<!-- %script% -->', `<script>window.__note = ${escapeScript(JSON.stringify(note.note))}</script>`)
+
+    return html
+  }
 
   router
 
@@ -79,9 +125,18 @@ export const routes = () => {
       await ctx.redirect(generatePageId())
     })
     .get('/:id*', async (ctx) => {
-      await send(ctx, 'index.html', {
-        root: config.staticDir,
-      })
+      const path = ctx.path
+      const trimmed = path.replace(/\/+$/, '')
+      if (trimmed !== path) {
+        ctx.redirect(trimmed)
+        return
+      }
+
+      const noteId = decodeURIComponent(path.slice(1))
+      const html = await renderIndexHtml(noteId)
+      ctx.body = html
+      ctx.type = 'text/html'
+      ctx.header['Cache-Control'] = 'no-store, no-cache, must-revalidate'
     })
 
   return router.routes()
