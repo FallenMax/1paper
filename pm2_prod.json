@@ -8,7 +8,7 @@
         "PORT": "3000",
         "MONGODB_URL": "mongodb://localhost:27017",
         "MONGODB_DATABASE": "notepad",
-        "GOOGLE_ANALYTICS_ID": "G-B9DGXB165Z"
+        "ANALYTICS_SCRIPT": "<script defer src=\"https://cloud.umami.is/script.js\" data-website-id=\"d106f7dc-225d-47bd-a06a-3b9cf25a0480\"></script>"
       }
     }
   ]

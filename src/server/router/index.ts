@@ -48,24 +48,11 @@ export const routes = (noteService: NoteService) => {
 
   async function renderIndexHtml(noteId: string) {
     const note = await noteService.getNote(noteId)
-    const ga = process.env.GOOGLE_ANALYTICS_ID
+    const analyticScript = process.env.ANALYTICS_SCRIPT
     const safeNoteId = encodeHtml(noteId)
     const html = indexHtml
       .replace('<title>1paper</title>', `<title>${safeNoteId}·1paper</title>`)
-      .replace(
-        '<!-- %google-analytics% -->',
-        ga
-          ? `<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=${ga}"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config',${JSON.stringify(ga)});
-</script>`
-          : '',
-      )
+      .replace('<!-- %analytics% -->', analyticScript ? analyticScript : '')
       .replace('<!-- %title% -->', `${safeNoteId}`)
       .replace('<!-- %script% -->', `<script>window.__note = ${escapeScript(JSON.stringify(note.note))}</script>`)
 
