@@ -3,15 +3,20 @@
   right: 4px;
   bottom: 4px;
   z-index: 9999;
-  background: var(--text-bg);
-  border: 1px solid var(--text-border);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 8px;
   padding: 8px;
   gap: 8px;
+  height: fit-content;
+  display: flex;
   align-items: center;
-  justify-content: flex-start;
-  button {
-    width: var(--icon-size);
-    height: var(--icon-size);
-  }
+  justify-content: center;
+}
+
+html[data-theme='dark'] .mobile-toolbar {
+  background: rgba(34, 34, 34, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }

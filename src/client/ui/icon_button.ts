@@ -8,13 +8,13 @@ export type IconButtonOptions = {
   buttonOptions?: ElementProps<'button'>
 }
 export class IconButton implements ViewController {
-  dom: HTMLElement
+  dom: HTMLButtonElement
   constructor(options: IconButtonOptions) {
     this.dom = h(
       'button',
       {
-        className: 'icon-button',
         ...options.buttonOptions,
+        className: 'icon-button ' + (options.buttonOptions?.className ?? ''),
       },
       [new Svg(options.icon).dom],
     )

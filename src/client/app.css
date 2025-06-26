@@ -7,12 +7,14 @@ body {
   line-height: 1.5;
   color: var(--text-color);
   width: 100%;
+  max-width: 100%;
   height: 100%;
-  /* height: -webkit-fill-available;
-  min-height: -webkit-fill-available; */
+  max-height: 100%;
   margin: 0;
   padding: 0;
   interpolate-size: allow-keywords;
+  overflow: hidden;
+  touch-action: manipulation;
 }
 :root {
   --icon-size: 14px;
@@ -57,6 +59,7 @@ body {
   /* padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 20px)
     env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 20px); */
 }
+
 #app {
   display: flex;
   flex-direction: column;
@@ -66,10 +69,7 @@ body {
   gap: 2px;
   max-width: calc(100vw - 16px);
   height: 90vh;
-  @media (max-width: 768px) {
-    height: calc(100vh);
-  }
-
+  max-height: 90vh;
   header {
     display: flex;
     align-self: stretch;
@@ -86,6 +86,7 @@ body {
       color: var(--text-secondary);
       opacity: 0;
       transition: opacity 0.5s 0.5s;
+      font-size: 0.8rem;
       &.is-saving {
         opacity: 0.5;
         transition: opacity 0s;
@@ -157,12 +158,3 @@ body {
     }
   }
 }
-
-/* html.mobile {
-  #app {
-    height: calc(100vh - 12px);
-    height: -webkit-fill-available;
-    max-height: calc(100vh - 12px);
-    max-height: -webkit-fill-available;
-  }
-} */

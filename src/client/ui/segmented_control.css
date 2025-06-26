@@ -18,10 +18,10 @@
       color: var(--text-fg);
     }
     &:first-child {
-      padding-left: 6px;
+      padding-left: 0.5em;
     }
     &:last-child {
-      padding-right: 6px;
+      padding-right: em;
     }
     &:not(:last-child) {
       border-right: 1px solid var(--text-border);

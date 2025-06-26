@@ -22,18 +22,18 @@ export class TopToolbar implements ViewController {
     this.viewModePicker = new ViewModePickerVC()
     this.dom = h('div', { className: 'top-toolbar' }, [
       // Menu toggle
-      (this.$toggleButton = h(
-        'button',
-        {
+      (this.$toggleButton = new IconButton({
+        icon: icons.menuOutline,
+        buttonOptions: {
           className: 'menu-toggle',
+          title: 'Menu',
           onclick: () => {
             const expanded = uiStorage.get('menuExpanded') ?? false
             uiStorage.set('menuExpanded', !expanded)
             this.applyExpandState()
           },
         },
-        [new Svg(icons.menuOutline).dom],
-      )),
+      }).dom),
       // Controls
       (this.$controls = h('div', { className: 'controls' }, [
         h('div', { className: 'controls-inner' }, [
