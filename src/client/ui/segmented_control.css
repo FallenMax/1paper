@@ -21,7 +21,7 @@
       padding-left: 0.5em;
     }
     &:last-child {
-      padding-right: em;
+      padding-right: 0.5em;
     }
     &:not(:last-child) {
       border-right: 1px solid var(--text-border);
