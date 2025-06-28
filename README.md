@@ -1,8 +1,6 @@
 # A quick cover of notepad.cc
 
-## Demo
-
-https://notepad.1976f.com/
+https://1paper.at
 
 ## Features
 
