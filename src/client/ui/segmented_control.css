@@ -1,34 +1,19 @@
 .segmented-control {
-  border-radius: 9999px;
-  border: 1px solid var(--text-border);
-  overflow: hidden;
   display: flex;
+  align-items: center;
   user-select: none;
+  gap: 8px;
   button {
     appearance: none;
     border: none;
+    padding: 0;
     background: none;
-    padding: 0px 4px;
-    height: var(--icon-size);
     cursor: pointer;
     font-size: 0.9rem;
     color: var(--text-secondary);
-    &:hover,
-    &:focus-visible {
-      color: var(--text-fg);
-    }
-    &:first-child {
-      padding-left: 0.5em;
-    }
-    &:last-child {
-      padding-right: 0.5em;
-    }
-    &:not(:last-child) {
-      border-right: 1px solid var(--text-border);
-    }
+    opacity: 0.5;
     &.is-active {
-      background: var(--text-secondary);
-      color: var(--text-bg);
+      opacity: 1;
     }
   }
 }
