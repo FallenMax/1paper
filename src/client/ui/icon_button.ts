@@ -5,6 +5,7 @@ import { Svg } from './svg'
 
 export type IconButtonOptions = {
   icon: string
+  label?: string
   buttonOptions?: ElementProps<'button'>
 }
 export class IconButton implements ViewController {
@@ -16,7 +17,7 @@ export class IconButton implements ViewController {
         ...options.buttonOptions,
         className: 'icon-button ' + (options.buttonOptions?.className ?? ''),
       },
-      [new Svg(options.icon).dom],
+      [new Svg(options.icon).dom, options.label],
     )
   }
   setIcon(icon: string) {

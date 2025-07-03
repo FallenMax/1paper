@@ -1,12 +1,12 @@
 .editor {
   resize: none;
   padding: 1em;
-  color: var(--text-fg);
+  color: var(--text);
   line-height: 1.5;
   font-size: 1.1rem;
   font-family: monospace;
   -webkit-overflow-scrolling: touch;
   &[disabled] {
-    color: var(--text-disabled-fg);
+    color: var(--text-disabled);
   }
 }

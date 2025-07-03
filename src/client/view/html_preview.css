@@ -1,4 +1,4 @@
 .html-preview {
-  background-color: var(--text-bg);
-  color: var(--text-fg);
+  background: var(--bg);
+  color: var(--text);
 }

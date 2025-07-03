@@ -15,12 +15,12 @@ export type ElementProps<K extends keyof HTMLElementTagNameMap> = Override<
 export function h<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   props?: ElementProps<K>,
-  children?: (HTMLElement | undefined)[] | string | undefined,
+  children?: (HTMLElement | undefined | string)[] | string | undefined,
 ): HTMLElementTagNameMap[K]
 export function h(
   tag: string,
   props?: Override<Partial<HTMLElement>, { style?: Partial<CSSStyleDeclaration>; dataset?: Record<string, string> }>,
-  children?: (HTMLElement | undefined)[] | string | undefined,
+  children?: (HTMLElement | undefined | string)[] | string | undefined,
 ): HTMLElement {
   const $el = document.createElement(tag)
 
