@@ -30,7 +30,7 @@ export class SegmentedControl implements ViewController {
   }
   private apply() {
     const $buttons = this.dom.querySelectorAll('button')
-    for (const $button of $buttons) {
+    for (const $button of Array.from($buttons)) {
       $button.classList.toggle('is-active', $button.classList.contains(this.value))
     }
   }
