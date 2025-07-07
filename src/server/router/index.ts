@@ -107,6 +107,17 @@ export const routes = (noteService: NoteService) => {
       }
     })
 
+    // robots.txt - disallow all
+    .get('/robots.txt', async (ctx) => {
+      ctx.body = 'User-agent: *\nDisallow: /'
+      ctx.type = 'text/plain'
+    })
+
+    // .well-known/* - return 404 for all requests
+    .get('/.well-known/:path*', async (ctx) => {
+      ctx.status = 404
+    })
+
     // pages
     .get('/', async (ctx) => {
       await ctx.redirect(generatePageId())

@@ -1,6 +1,6 @@
 import { ViewController } from '../util/view_controller'
 
-export class Svg implements ViewController {
+export class Icon implements ViewController {
   dom: HTMLElement
   constructor(svgString: string) {
     const wrapper = document.createElement('div')

@@ -3,23 +3,32 @@
   border: none;
   background: none;
   display: inline-flex;
-  padding: 0;
+  padding: 4px;
   cursor: pointer;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   flex-shrink: 0;
   user-select: none;
-  color: var(--text);
+  color: var(--text-secondary);
   gap: 4px;
+  border-radius: 4px;
   svg {
-    color: var(--text);
+    color: inherit;
     width: var(--icon-size);
     height: var(--icon-size);
   }
-  opacity: 0.4;
-  &:hover,
   &:focus-visible {
-    opacity: 0.7;
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+  @media (min-width: 768px) {
+    &:hover {
+      color: var(--text);
+      background: var(--bg-hover);
+    }
+  }
+  &:active {
+    background: var(--bg-active);
   }
 }

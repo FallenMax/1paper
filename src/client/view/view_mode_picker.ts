@@ -1,25 +1,36 @@
+import { icons } from '../icon/icons'
 import { UiStore, ViewMode } from '../store/ui.store'
-import { SegmentedControl } from '../ui/segmented_control'
+import { Select } from '../ui/select'
 import { ViewController } from '../util/view_controller'
 
-export class ViewModePickerVC implements ViewController {
+export class ViewModePicker implements ViewController {
   dom: HTMLElement
-  segmentedControl: SegmentedControl
+  select: Select
+  get mode() {
+    return UiStore.shared.viewMode
+  }
   constructor() {
-    this.segmentedControl = new SegmentedControl({
+    this.select = new Select({
       options: [
         { label: 'Text', value: 'text' },
         { label: 'Markdown', value: 'markdown' },
         { label: 'HTML', value: 'html' },
       ],
-      onChange: (value) => UiStore.shared.setViewMode(value as ViewMode),
-      initialValue: UiStore.shared.viewMode,
+      onChange: (value) => {
+        UiStore.shared.setViewMode(value as ViewMode)
+      },
+      initialValue: this.mode,
+      label: 'View Mode',
+      icon: icons.eyeOutline,
     })
-    this.dom = this.segmentedControl.dom
+    this.dom = this.select.dom
   }
   init() {
-    UiStore.shared.on('viewModeChanged', (viewMode) => {
-      this.segmentedControl.setValue(viewMode)
-    })
+    UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this))
+    this.applyViewMode()
+  }
+  applyViewMode() {
+    this.select.setValue(this.mode)
+    this.select.setIcon(this.mode === 'text' ? icons.eyeOutline : icons.eye)
   }
 }

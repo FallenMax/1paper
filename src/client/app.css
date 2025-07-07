@@ -16,22 +16,14 @@ body {
   touch-action: manipulation;
 }
 :root {
-  --icon-size: 14px;
+  --icon-size: 16px;
   font-size: 14px;
   @media (max-width: 768px) {
-    --icon-size: 24px;
+    --icon-size: 20px;
     font-size: 16px;
   }
 }
 
-html[data-theme='dark'] {
-  --page-bg: rgb(34 34 34);
-  --text: rgb(255 255 255 / 75%);
-  --text-disabled: rgb(255 255 255 / 35%);
-  --text-secondary: rgb(255 255 255 / 50%);
-  --bg: rgb(41 41 41);
-  --border: rgb(56 56 56);
-}
 html[data-theme='light'] {
   --page-bg: rgb(237, 238, 240) url('./assets/bg.png') left top repeat;
   --text: #333;
@@ -39,6 +31,18 @@ html[data-theme='light'] {
   --text-secondary: #84878c;
   --bg: #fff;
   --border: #ddd;
+  --bg-hover: rgb(0 0 0 / 10%);
+  --bg-active: rgb(0 0 0 / 20%);
+}
+html[data-theme='dark'] {
+  --page-bg: rgb(34 34 34);
+  --text: rgb(255 255 255 / 75%);
+  --text-disabled: rgb(255 255 255 / 35%);
+  --text-secondary: rgb(255 255 255 / 50%);
+  --bg: rgb(41 41 41);
+  --border: rgb(56 56 56);
+  --bg-hover: rgb(255 255 255 / 10%);
+  --bg-active: rgb(255 255 255 / 20%);
 }
 
 *,
@@ -133,7 +137,7 @@ body {
     }
   }
   footer {
-    display: flex;
+    display: none;
     align-self: stretch;
     /* height: calc(18px + env(safe-area-inset-bottom, 0px)); */
     align-items: center;

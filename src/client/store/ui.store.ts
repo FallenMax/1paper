@@ -9,13 +9,14 @@ export type ViewMode = 'text' | 'markdown' | 'html'
 export const uiStorage = new Storage<{
   recent: string[]
   theme: 'light' | 'dark' | 'system'
-  menuExpanded: boolean
+  treeVisible: boolean
 }>('ui')
 
 export class UiStore extends EventEmitter<{
   themeChanged: Theme
   viewModeChanged: ViewMode
   recentVisitedChanged: string[]
+  treeVisibilityChanged: boolean
 }> {
   static shared = new UiStore()
   get viewMode(): ViewMode {
@@ -31,6 +32,8 @@ export class UiStore extends EventEmitter<{
         this.emit('themeChanged', e.newValue as Theme)
       } else if (e.key === uiStorage.prefixed('recent')) {
         this.emit('recentVisitedChanged', uiStorage.get('recent') ?? [])
+      } else if (e.key === uiStorage.prefixed('treeVisible')) {
+        this.emit('treeVisibilityChanged', uiStorage.get('treeVisible') ?? true)
       }
     })
   }
@@ -82,5 +85,13 @@ export class UiStore extends EventEmitter<{
 
   clearRecentVisited() {
     uiStorage.remove('recent')
+  }
+  //-------------- Sidebar (Tree) --------------
+  isTreeVisible() {
+    return uiStorage.get('treeVisible') ?? false
+  }
+  setTreeVisible(visible: boolean) {
+    uiStorage.set('treeVisible', visible)
+    this.emit('treeVisibilityChanged', visible)
   }
 }

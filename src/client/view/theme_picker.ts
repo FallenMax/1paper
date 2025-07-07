@@ -1,6 +1,6 @@
 import { icons } from '../icon/icons'
-import { UiStore } from '../store/ui.store'
-import { IconButton } from '../ui/icon_button'
+import { Theme, UiStore } from '../store/ui.store'
+import { Select } from '../ui/select'
 import { ViewController } from '../util/view_controller'
 
 const themeIcons = {
@@ -12,27 +12,29 @@ const themeIcons = {
 export class ThemePicker implements ViewController {
   static readonly themes = ['light', 'dark', 'system'] as const
   dom: HTMLElement
-  private iconButton: IconButton
+  select: Select
   constructor() {
-    this.iconButton = new IconButton({
+    this.select = new Select({
       icon: icons.sunOutline,
-      buttonOptions: {
-        title: 'Theme',
-        onclick: () => {
-          const index = ThemePicker.themes.indexOf(UiStore.shared.getTheme())
-          const nextIndex = (index + 1) % ThemePicker.themes.length
-          UiStore.shared.setTheme(ThemePicker.themes[nextIndex])
-        },
+      options: [
+        { label: 'Light', value: 'light' },
+        { label: 'Dark', value: 'dark' },
+        { label: 'System', value: 'system' },
+      ],
+      onChange: (value) => {
+        UiStore.shared.setTheme(value as Theme)
       },
+      initialValue: UiStore.shared.getTheme(),
+      label: 'Theme',
     })
-    this.dom = this.iconButton.dom
+    this.dom = this.select.dom
   }
   init() {
     UiStore.shared.on('themeChanged', this.applyTheme.bind(this))
     this.applyTheme()
   }
   applyTheme() {
-    const theme = UiStore.shared.getTheme()
-    this.iconButton.setIcon(themeIcons[theme])
+    this.select.setValue(UiStore.shared.getTheme())
+    this.select.setIcon(themeIcons[UiStore.shared.getTheme()])
   }
 }

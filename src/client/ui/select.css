@@ -1,0 +1,37 @@
+.select-wrapper {
+  position: relative;
+  width: calc(var(--icon-size) + 8px);
+  height: calc(var(--icon-size) + 8px);
+  border-radius: 4px;
+  padding: 4px;
+  color: var(--text-secondary);
+  svg {
+    position: absolute;
+    inset: 4px;
+    color: inherit;
+  }
+  &:has(select:focus-visible) {
+    color: var(--text);
+    background: var(--bg-hover);
+  }
+  @media (min-width: 768px) {
+    &:hover {
+      color: var(--text);
+      background: var(--bg-hover);
+    }
+  }
+  select {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    appearance: none;
+    border: none;
+    background: none;
+    font-size: 1rem;
+    color: var(--text);
+    cursor: pointer;
+    &:hover {
+      color: var(--text);
+    }
+  }
+}

@@ -67,6 +67,9 @@ export class Server extends Disposable {
         get: async ({ id }) => {
           return await this.noteService.getNote(id)
         },
+        getTreeNoteIds: async ({ id }) => {
+          return await this.noteService.getTreeNoteIds(id)
+        },
         save: async ({ id, p, h }, client) => {
           console.info(`saving note for: ${id}`)
           // FIXME queue

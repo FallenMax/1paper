@@ -48,7 +48,7 @@ export class DbConnection extends Disposable {
 }
 
 export class Table<T extends Id> {
-  private collection: MongoDB.Collection<T>
+  collection: MongoDB.Collection<T>
   private indices = new Set<keyof T>()
 
   constructor(connection: DbConnection, name: string) {
@@ -60,9 +60,7 @@ export class Table<T extends Id> {
   }
 
   async addMulti(items: T[]): Promise<void> {
-    await this.collection.insertMany(
-      items as MongoDB.OptionalUnlessRequiredId<T>[],
-    )
+    await this.collection.insertMany(items as MongoDB.OptionalUnlessRequiredId<T>[])
   }
 
   async find(query: DeepPartial<T>, option?: FindOption<T>): Promise<T[]> {
@@ -115,11 +113,7 @@ export class Table<T extends Id> {
   }
 
   async upsert(query: DeepPartial<T> & Id, item: T): Promise<void> {
-    await this.collection.updateOne(
-      query as any,
-      { $set: item },
-      { upsert: true },
-    )
+    await this.collection.updateOne(query as any, { $set: item }, { upsert: true })
   }
 
   async setIndex(field: keyof T): Promise<void> {
@@ -128,9 +122,7 @@ export class Table<T extends Id> {
     this.indices.add(field)
   }
 
-  private filterUndefined<U extends object>(
-    obj: U,
-  ): { [K in keyof U]: Exclude<U[K], undefined> } {
+  private filterUndefined<U extends object>(obj: U): { [K in keyof U]: Exclude<U[K], undefined> } {
     const result: any = {}
     for (const [key, value] of Object.entries(obj)) {
       if (value !== undefined) {

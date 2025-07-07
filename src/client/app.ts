@@ -11,9 +11,10 @@ import { Editor } from './view/editor'
 import { HtmlPreview } from './view/html_preview'
 import { MarkdownPreview } from './view/markdown_preview'
 import { MobileToolbar } from './view/mobile_toolbar'
+import { Sidebar } from './view/sidebar'
 import { TopToolbar } from './view/top_toolbar'
 
-class AppVC implements ViewController {
+class App implements ViewController {
   dom: HTMLElement
   private rpcClient: RpcClient<ServerAPI, ClientAPI>
   private noteService: NoteService
@@ -23,7 +24,8 @@ class AppVC implements ViewController {
   private $saveStatus: HTMLElement
   private mobileToolbar: MobileToolbar | undefined
   private topToolbar: TopToolbar
-  readonly id: string
+  private sidebar: Sidebar
+  private id: string
   private $main: HTMLElement
   private isDisconnected = false
   private isSaving = false
@@ -40,6 +42,7 @@ class AppVC implements ViewController {
     this.noteService = new NoteService(this.rpcClient)
 
     this.topToolbar = new TopToolbar(id)
+    this.sidebar = new Sidebar(id, this.noteService)
 
     this.editor = new Editor({
       id,
@@ -62,7 +65,7 @@ class AppVC implements ViewController {
         // h('a', { href: location.origin + '/' + id, textContent: id, className: 'note-name' }),
         (this.$saveStatus = h('span', { className: 'save-status', textContent: 'Saving...' })),
       ]),
-      (this.$main = h('main', {}, [this.editor.dom])),
+      (this.$main = h('main', {}, [this.editor.dom, this.sidebar.dom])),
       h('footer', {}, [h('a', { href: url, target: '_blank' }, url)]),
       this.mobileToolbar?.dom,
     ])
@@ -82,13 +85,15 @@ class AppVC implements ViewController {
 
     this.editor.init()
     this.topToolbar.init()
+    this.sidebar.init()
 
     UiStore.shared.on('themeChanged', this.applyTheme.bind(this))
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', this.applyTheme.bind(this))
     this.applyTheme()
 
     UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this))
     this.applyViewMode()
-    this.applySaveStatus
+    this.applySaveStatus()
 
     document.title = `${id} - 1paper`
   }
@@ -145,7 +150,7 @@ const id = decodeURIComponent(location.pathname.slice(1))
 if (id === '') {
   location.replace('/' + generatePageId())
 } else {
-  const app = new AppVC(id)
+  const app = new App(id)
   document.body.appendChild(app.dom)
   app.init()
 }

@@ -1,7 +1,7 @@
 import { ElementProps, h } from '../util/dom'
 import { ViewController } from '../util/view_controller'
+import { Icon } from './icon'
 import './icon_button.css'
-import { Svg } from './svg'
 
 export type IconButtonOptions = {
   icon: string
@@ -17,7 +17,7 @@ export class IconButton implements ViewController {
         ...options.buttonOptions,
         className: 'icon-button ' + (options.buttonOptions?.className ?? ''),
       },
-      [new Svg(options.icon).dom, options.label],
+      [new Icon(options.icon).dom, options.label],
     )
   }
   setIcon(icon: string) {

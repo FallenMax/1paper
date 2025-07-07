@@ -3,10 +3,10 @@
   right: 4px;
   bottom: 4px;
   z-index: 9999;
-  background: rgba(255, 255, 255, 0.8);
+  background: var(--bg);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 8px;
   gap: 8px;
@@ -17,6 +17,5 @@
 }
 
 html[data-theme='dark'] .mobile-toolbar {
-  background: rgba(34, 34, 34, 0.8);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: var(--bg);
 }

@@ -28,22 +28,18 @@ export class NoteService extends Disposable {
     this.table = new Table<Note>(this.connection, 'notes')
   }
 
-  private patchPromise = Promise.resolve() as unknown as ReturnType<
-    NoteService['doPatchNote']
-  >
+  private patchPromise = Promise.resolve() as unknown as ReturnType<NoteService['doPatchNote']>
+
   async patchNote(options: PatchNodeOptions) {
     // Queue changes to avoid race condition
     await Promise.allSettled([this.patchPromise])
     this.patchPromise = this.doPatchNote(options)
     return this.patchPromise
   }
-  private async doPatchNote({
-    id,
-    patch,
-    hash,
-    source,
-  }: PatchNodeOptions): Promise<{ hash: number; patch: Patch }> {
+
+  private async doPatchNote({ id, patch, hash, source }: PatchNodeOptions): Promise<{ hash: number; patch: Patch }> {
     const existNote = await this.getNote(id)
+    const wasEmpty = existNote.note.length === 0
 
     const result = applyPatch(existNote.note, patch)
     if (result == null || hash !== hashString(result)) {
@@ -53,10 +49,16 @@ export class NoteService extends Disposable {
       throw new UserError(ErrorCode.EXCEEDED_MAX_SIZE)
     }
 
-    if (result.length === 0) {
+    const empty = result.length === 0
+
+    if (empty) {
       await this.table.remove({ _id: id })
     } else {
       await this.table.upsert({ _id: id }, { note: result, _id: id })
+    }
+
+    if (empty !== wasEmpty) {
+      // [TODO] notify client
     }
     return { hash, patch }
   }
@@ -70,5 +72,19 @@ export class NoteService extends Disposable {
       _id: id,
       note: '',
     }
+  }
+
+  async getTreeNoteIds(id: string): Promise<string[]> {
+    const rootId = id.split('/')[0]
+    if (!rootId) return []
+    const results = await this.table.collection
+      .find(
+        {
+          $or: [{ _id: rootId }, { _id: { $regex: `^${rootId}/` } }],
+        },
+        { projection: { _id: 1 } },
+      )
+      .toArray()
+    return results.filter((item) => !item._id.endsWith('/')).map((item) => item._id)
   }
 }
