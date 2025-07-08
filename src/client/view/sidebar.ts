@@ -111,7 +111,7 @@ export class Sidebar extends Disposable implements ViewController {
     return h(
       'li',
       {
-        className: `note-item ${node.fullPath === this.id ? 'is-current' : ''}`,
+        className: `note-item ${node.fullPath.slice(1) === this.id ? 'is-current' : ''}`,
         style: { paddingLeft: `${level * 16}px` },
       },
       [new Link({ href: node.fullPath, children: [node.segment] }).dom],
