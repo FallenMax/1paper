@@ -108,6 +108,10 @@ body {
     min-height: 0;
 
     position: relative;
+    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    &.is-sidebar-open {
+      transform: translateX(var(--main-offset));
+    }
     &::before,
     &::after,
     > *:not(aside) {

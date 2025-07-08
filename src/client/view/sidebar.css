@@ -5,9 +5,10 @@ aside {
   bottom: 0;
   transform: translateX(-100%);
   background: none;
-  padding-right: 20px;
-  min-width: 200px;
-
+  padding: 0 8px;
+  width: 200px;
+  max-width: 200px;
+  overflow: auto;
   display: flex;
   flex-direction: column;
   gap: 12px;

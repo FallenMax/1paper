@@ -101,6 +101,7 @@ class App extends Disposable implements ViewController {
     this.applyTheme()
 
     this.register(UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this)))
+    this.register(UiStore.shared.on('treeVisibilityChanged', this.applyTreeVisibility.bind(this)))
     this.applyViewMode()
     this.applySaveStatus()
 
@@ -111,6 +112,13 @@ class App extends Disposable implements ViewController {
         this.setId(e.id)
       }),
     )
+
+    this.register(
+      listenDom(window, 'resize', () => {
+        this.applyTreeVisibility()
+      }),
+    )
+    this.applyTreeVisibility()
   }
 
   /** Switch to a different note ID using SPA navigation */
@@ -189,6 +197,19 @@ class App extends Disposable implements ViewController {
   private applyTheme() {
     const theme = UiStore.shared.getComputedTheme()
     document.documentElement.dataset.theme = theme
+  }
+  private applyTreeVisibility() {
+    this.$main.classList.toggle('is-sidebar-open', UiStore.shared.isTreeVisible())
+
+    const winWidth = window.innerWidth
+    const pageWidth = Math.min(winWidth, 800)
+    const sidebarWidth = 200
+    const origLeft = (winWidth - pageWidth) / 2
+    const left1 = (winWidth - pageWidth - sidebarWidth) / 2
+    const left2 = sidebarWidth
+    const left = Math.max(left1, left2, origLeft)
+    const offset = left - origLeft
+    this.$main.style.setProperty('--main-offset', `${offset}px`)
   }
 }
 
