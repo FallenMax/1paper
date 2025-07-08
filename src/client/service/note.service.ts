@@ -8,7 +8,6 @@ export class NoteService extends EventEmitter<{
 }> {
   constructor(private rpcClient: RpcClient<ServerAPI, ClientAPI>) {
     super()
-    window.addEventListener('storage', (e) => {})
   }
   subscribe(id: string) {
     return this.rpcClient.call('subscribe', { id })

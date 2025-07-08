@@ -1,3 +1,4 @@
+import { Disposable } from '../../common/disposable'
 import { icons } from '../icon/icons'
 import { Theme, UiStore } from '../store/ui.store'
 import { Select } from '../ui/select'
@@ -9,11 +10,12 @@ const themeIcons = {
   system: icons.desktopOutline,
 } as const
 
-export class ThemePicker implements ViewController {
+export class ThemePicker extends Disposable implements ViewController {
   static readonly themes = ['light', 'dark', 'system'] as const
   dom: HTMLElement
   select: Select
   constructor() {
+    super()
     this.select = new Select({
       icon: icons.sunOutline,
       options: [
@@ -30,7 +32,7 @@ export class ThemePicker implements ViewController {
     this.dom = this.select.dom
   }
   init() {
-    UiStore.shared.on('themeChanged', this.applyTheme.bind(this))
+    this.register(UiStore.shared.on('themeChanged', this.applyTheme.bind(this)))
     this.applyTheme()
   }
   applyTheme() {

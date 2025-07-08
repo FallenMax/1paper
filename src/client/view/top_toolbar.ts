@@ -1,30 +1,29 @@
+import { Disposable } from '../../common/disposable'
 import { icons } from '../icon/icons'
-import { UiStore } from '../store/ui.store'
 import { IconButton } from '../ui/icon_button'
-import { h } from '../util/dom'
+import { h, listenDom } from '../util/dom'
+import { Router } from '../util/router'
 import { ViewController } from '../util/view_controller'
-import { RecentList } from './recent_list'
 import { SidebarToggle } from './sidebar_toggle'
 import { ThemePicker } from './theme_picker'
 import './top_toolbar.css'
 import { ViewModePicker } from './view_mode_picker'
 
-export class TopToolbar implements ViewController {
+export class TopToolbar extends Disposable implements ViewController {
   dom: HTMLElement
   id: string
   private $toggleButton: HTMLButtonElement
   private themePicker: ThemePicker
   private viewModePicker: ViewModePicker
-  private recentList: RecentList
   private $controls: HTMLElement
   private sidebarToggle: SidebarToggle
   private isExpanded = false
   constructor(id: string) {
+    super()
     this.id = id
     this.themePicker = new ThemePicker()
     this.viewModePicker = new ViewModePicker()
-    this.recentList = new RecentList(id)
-    this.sidebarToggle = new SidebarToggle(id)
+    this.sidebarToggle = new SidebarToggle()
 
     this.dom = h('div', { className: 'top-toolbar' }, [
       // Menu toggle
@@ -44,8 +43,6 @@ export class TopToolbar implements ViewController {
         h('div', { className: 'controls-inner' }, [
           // Sidebar toggle
           this.sidebarToggle.dom,
-          // Recent
-          this.recentList.dom,
           // Theme
           this.themePicker.dom,
           // View mode
@@ -71,25 +68,29 @@ export class TopToolbar implements ViewController {
   }
 
   init() {
-    UiStore.shared.markVisited(this.id)
-
-    this.recentList.init()
     this.themePicker.init()
     this.viewModePicker.init()
     this.sidebarToggle.init()
     const actualControlWidth = this.$controls.firstElementChild!.clientWidth
     this.$controls.style.setProperty('--max-width', actualControlWidth + 'px')
-    this.$controls.addEventListener('transitionend', (e) => {
-      if (!this.isExpanded) {
-        this.$controls.remove()
-      }
-    })
+    this.register(
+      listenDom(this.$controls, 'transitionend', (e) => {
+        if (!this.isExpanded) {
+          this.$controls.remove()
+        }
+      }),
+    )
     this.applyExpandState()
   }
 
-  goToNote(id: string) {
-    location.assign('/' + id)
+  async setId(newId: string): Promise<void> {
+    this.id = newId
   }
+
+  goToNote(id: string) {
+    Router.shared.navigateTo(id)
+  }
+
   private applyExpandState() {
     if (this.isExpanded) {
       if (!this.dom.contains(this.$controls)) {

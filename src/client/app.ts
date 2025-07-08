@@ -1,11 +1,13 @@
 import { ClientAPI, ServerAPI } from '../common/api.type'
+import { Disposable } from '../common/disposable'
 import { generatePageId } from '../common/lib/generate_id'
 import './app.css'
 import { RpcClient } from './lib/rpc_client'
 import { NoteService } from './service/note.service'
 import { UiStore } from './store/ui.store'
-import { h } from './util/dom'
+import { h, listenDom } from './util/dom'
 import { isMobile } from './util/env'
+import { Router } from './util/router'
 import { ViewController } from './util/view_controller'
 import { Editor } from './view/editor'
 import { HtmlPreview } from './view/html_preview'
@@ -14,35 +16,38 @@ import { MobileToolbar } from './view/mobile_toolbar'
 import { Sidebar } from './view/sidebar'
 import { TopToolbar } from './view/top_toolbar'
 
-class App implements ViewController {
+class App extends Disposable implements ViewController {
   dom: HTMLElement
   private rpcClient: RpcClient<ServerAPI, ClientAPI>
   private noteService: NoteService
   private editor: Editor
   private markdownPreview?: MarkdownPreview
   private htmlPreview?: HtmlPreview
-  private $saveStatus: HTMLElement
   private mobileToolbar: MobileToolbar | undefined
   private topToolbar: TopToolbar
   private sidebar: Sidebar
   private id: string
+  private $saveStatus: HTMLElement
   private $main: HTMLElement
   private isDisconnected = false
   private isSaving = false
 
   constructor(id: string) {
+    super()
     this.id = id
 
-    this.rpcClient = new RpcClient<ServerAPI, ClientAPI>({
-      noteUpdate: (payload) => {
-        this.noteService.emit('noteUpdate', payload)
-      },
-    })
+    this.rpcClient = this.register(
+      new RpcClient<ServerAPI, ClientAPI>({
+        noteUpdate: (payload) => {
+          this.noteService.emit('noteUpdate', payload)
+        },
+      }),
+    )
 
-    this.noteService = new NoteService(this.rpcClient)
+    this.noteService = this.register(new NoteService(this.rpcClient))
 
-    this.topToolbar = new TopToolbar(id)
-    this.sidebar = new Sidebar(id, this.noteService)
+    this.topToolbar = this.register(new TopToolbar(id))
+    this.sidebar = this.register(new Sidebar(id, this.noteService))
 
     this.editor = new Editor({
       id,
@@ -54,19 +59,16 @@ class App implements ViewController {
     })
 
     if (isMobile) {
-      this.mobileToolbar = new MobileToolbar(this.editor)
+      this.mobileToolbar = this.register(new MobileToolbar(this.editor))
     }
 
-    const url = `${location.origin}/${id}`
     this.dom = h('div', { id: 'app' }, [
       h('header', {}, [
         this.topToolbar.dom,
         h('div', { className: 'spacer' }),
-        // h('a', { href: location.origin + '/' + id, textContent: id, className: 'note-name' }),
-        (this.$saveStatus = h('span', { className: 'save-status', textContent: 'Saving...' })),
+        (this.$saveStatus = h('span', { className: 'save-status' }, 'Saving...')),
       ]),
       (this.$main = h('main', {}, [this.editor.dom, this.sidebar.dom])),
-      h('footer', {}, [h('a', { href: url, target: '_blank' }, url)]),
       this.mobileToolbar?.dom,
     ])
   }
@@ -74,28 +76,72 @@ class App implements ViewController {
   init() {
     document.documentElement.classList.toggle('mobile', isMobile)
 
-    this.rpcClient.on('connected', () => {
-      this.isDisconnected = false
-      this.applySaveStatus()
-    })
-    this.rpcClient.on('disconnected', () => {
-      this.isDisconnected = true
-      this.applySaveStatus()
-    })
+    this.register(
+      this.rpcClient.on('connected', () => {
+        this.isDisconnected = false
+        this.applySaveStatus()
+      }),
+    )
+
+    this.register(
+      this.rpcClient.on('disconnected', () => {
+        this.isDisconnected = true
+        this.applySaveStatus()
+      }),
+    )
 
     this.editor.init()
     this.topToolbar.init()
     this.sidebar.init()
 
-    UiStore.shared.on('themeChanged', this.applyTheme.bind(this))
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', this.applyTheme.bind(this))
+    this.register(UiStore.shared.on('themeChanged', this.applyTheme.bind(this)))
+    this.register(
+      listenDom(window.matchMedia('(prefers-color-scheme: dark)') as any, 'change', this.applyTheme.bind(this)),
+    )
     this.applyTheme()
 
-    UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this))
+    this.register(UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this)))
     this.applyViewMode()
     this.applySaveStatus()
 
     document.title = `${id} - 1paper`
+
+    this.register(
+      Router.shared.on('navigatedTo', (e) => {
+        this.setId(e.id)
+      }),
+    )
+  }
+
+  /** Switch to a different note ID using SPA navigation */
+  async setId(newId: string): Promise<void> {
+    if (newId === this.id) {
+      return
+    }
+
+    this.id = newId
+
+    // Create new editor
+    this.editor.dispose()
+    this.editor.dom.remove()
+    this.editor = new Editor({
+      id: newId,
+      noteService: this.noteService,
+      onSaveStatusChange: (isSaving) => {
+        this.isSaving = isSaving
+        this.applySaveStatus()
+      },
+    })
+    await this.editor.init()
+
+    this.markdownPreview?.setEditor(this.editor)
+    this.htmlPreview?.setEditor(this.editor)
+    this.mobileToolbar?.setEditor(this.editor)
+    await this.topToolbar.setId(newId)
+    await this.sidebar.setId(newId)
+    document.title = `${newId} - 1paper`
+
+    await this.applyViewMode()
   }
 
   private applySaveStatus() {

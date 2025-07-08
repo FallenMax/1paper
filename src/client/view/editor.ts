@@ -5,7 +5,7 @@ import { applyPatch, createPatch, merge3, Patch } from '../../common/lib/diff3'
 import { getTransformer } from '../lib/transformer/transformer'
 import { END, START, TextTransformer } from '../lib/transformer/transformer.type'
 import { NoteService } from '../service/note.service'
-import { h } from '../util/dom'
+import { h, listenDom } from '../util/dom'
 import { isDebugging } from '../util/env'
 import { UserError } from '../util/error'
 import { ViewController } from '../util/view_controller'
@@ -100,15 +100,18 @@ export class Editor
         }
       },
     })
-    this.dom.addEventListener('compositionstart', () => (this.isCompositing = true))
-    this.dom.addEventListener('compositionend', () => (this.isCompositing = false))
+    this.register(listenDom(this.dom, 'compositionstart', () => (this.isCompositing = true)))
+    this.register(listenDom(this.dom, 'compositionend', () => (this.isCompositing = false)))
   }
 
   //-------------- Initialization --------------
   async init() {
     try {
       const { id, noteService } = this.options
-      noteService.on('noteUpdate', this.handleNoteUpdate)
+
+      // Setup note update listener
+      this.register(noteService.on('noteUpdate', this.handleNoteUpdate))
+
       let note = (window as any).__note
       if (note == null) {
         const result = await noteService.fetchNote(id)
@@ -117,6 +120,7 @@ export class Editor
         }
         note = result.note
       }
+      ;(window as any).__note = undefined
 
       this.dom.value = note
       this.common = note
@@ -129,26 +133,28 @@ export class Editor
       this.setOperation('idle')
       this.isCompositing = false
 
+      // Subscribe to note updates
       await noteService.subscribe(id)
+      this.register(() => noteService.unsubscribe(id))
 
-      window.addEventListener('beforeunload', this.handleBeforeUnload)
+      // Setup beforeunload handler
+      this.register(listenDom(window, 'beforeunload', this.handleBeforeUnload))
+
+      // Setup periodic sync timer
       this.periodicSyncTimer = window.setInterval(() => {
         noteService.subscribe(id) // in case server restarted and subscriptions are lost
         this.deferSync()
       }, 1000 * 60)
+      this.register(() => window.clearInterval(this.periodicSyncTimer))
+
+      this.register(() => clearTimeout(this.syncTimer))
+      this.register(() => clearTimeout(this.disableTimer))
 
       this.dom.disabled = false
       this.emit('localNoteUpdated', undefined)
     } catch (error) {
       showError(error)
     }
-  }
-  destroy() {
-    window.removeEventListener('beforeunload', this.handleBeforeUnload)
-    window.clearInterval(this.periodicSyncTimer)
-
-    this.options.noteService.off('noteUpdate', this.handleNoteUpdate)
-    this.options.noteService.unsubscribe(this.options.id)
   }
 
   get localNote() {

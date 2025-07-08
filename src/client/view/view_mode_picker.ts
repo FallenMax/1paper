@@ -1,15 +1,17 @@
+import { Disposable } from '../../common/disposable'
 import { icons } from '../icon/icons'
 import { UiStore, ViewMode } from '../store/ui.store'
 import { Select } from '../ui/select'
 import { ViewController } from '../util/view_controller'
 
-export class ViewModePicker implements ViewController {
+export class ViewModePicker extends Disposable implements ViewController {
   dom: HTMLElement
   select: Select
   get mode() {
     return UiStore.shared.viewMode
   }
   constructor() {
+    super()
     this.select = new Select({
       options: [
         { label: 'Text', value: 'text' },
@@ -26,7 +28,7 @@ export class ViewModePicker implements ViewController {
     this.dom = this.select.dom
   }
   init() {
-    UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this))
+    this.register(UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this)))
     this.applyViewMode()
   }
   applyViewMode() {

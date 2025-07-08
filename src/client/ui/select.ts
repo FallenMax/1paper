@@ -70,10 +70,8 @@ export class Select implements ViewController {
   }
   private applyOptions() {
     const $options = [
-      h('option', { value: PLACEHOLDER_VALUE, textContent: this.label ? `(${this.label})` : '' }),
-      ...this.options.map((option) =>
-        h('option', { value: option.value, textContent: option.label, disabled: option.disabled }),
-      ),
+      h('option', { value: PLACEHOLDER_VALUE }, this.label ? `(${this.label})` : ''),
+      ...this.options.map((option) => h('option', { value: option.value, disabled: option.disabled }, option.label)),
     ]
     this.$select.replaceChildren(...$options)
     if (!this.options.some((option) => option.value === this.value)) {

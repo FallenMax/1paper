@@ -1,7 +1,9 @@
+import { Disposable } from '../../common/disposable'
 import { icons } from '../icon/icons'
 import { NoteService } from '../service/note.service'
 import { UiStore } from '../store/ui.store'
 import { Icon } from '../ui/icon'
+import { Link } from '../ui/link'
 import { h } from '../util/dom'
 import { ViewController } from '../util/view_controller'
 import './sidebar.css'
@@ -12,31 +14,31 @@ interface TreeNode {
   children: TreeNode[] // Child nodes
 }
 
-export class Sidebar implements ViewController {
+export class Sidebar extends Disposable implements ViewController {
   dom: HTMLElement
   private $noteList: HTMLUListElement
+  private $header: HTMLElement
   private treeNoteIds: string[] = []
+  get rootId() {
+    return this.id.split('/')[0]
+  }
   constructor(private id: string, private noteService: NoteService) {
-    const rootId = this.id.split('/')[0]
+    super()
     this.dom = h('aside', {}, [
       h('section', {}, [
-        h('h3', {}, [new Icon(icons.folder).dom, `Notes in "${rootId}"`]),
+        (this.$header = h('h3', {}, [new Icon(icons.folder).dom, `Notes in "${this.rootId}"`])),
         (this.$noteList = h('ul', { className: 'note-list' }, [])),
       ]),
     ])
   }
   async init() {
-    this.treeNoteIds = await this.noteService.fetchTreeNoteIds(this.id)
-    if (!this.treeNoteIds.includes(this.id)) {
-      this.treeNoteIds.push(this.id)
-    }
-    this.treeNoteIds.sort()
-    this.applyTreeNoteIds()
-
-    UiStore.shared.on('treeVisibilityChanged', () => {
-      this.applyExpandState()
-    })
+    this.register(
+      UiStore.shared.on('treeVisibilityChanged', () => {
+        this.applyExpandState()
+      }),
+    )
     this.applyExpandState()
+    await this.updateTreeNoteIds()
   }
 
   /** Build tree structure from note IDs */
@@ -94,7 +96,12 @@ export class Sidebar implements ViewController {
     return elements
   }
 
-  private applyTreeNoteIds() {
+  private async updateTreeNoteIds() {
+    this.treeNoteIds = await this.noteService.fetchTreeNoteIds(this.id)
+    if (!this.treeNoteIds.includes(this.id)) {
+      this.treeNoteIds.push(this.id)
+    }
+    this.treeNoteIds.sort()
     const treeNodes = this.buildTree(this.treeNoteIds)
     const elements = this.renderTree(treeNodes)
     this.$noteList.replaceChildren(...elements)
@@ -107,11 +114,23 @@ export class Sidebar implements ViewController {
         className: `note-item ${node.fullPath === this.id ? 'is-current' : ''}`,
         style: { paddingLeft: `${level * 16}px` },
       },
-      [h('a', { href: `${node.fullPath}`, textContent: node.segment })],
+      [new Link({ href: node.fullPath, children: [node.segment] }).dom],
     )
   }
 
   private applyExpandState() {
     this.dom.style.display = UiStore.shared.isTreeVisible() ? 'block' : 'none'
+  }
+
+  /** Switch to a different note ID */
+  async setId(newId: string): Promise<void> {
+    if (newId === this.id) {
+      return
+    }
+
+    this.id = newId
+    this.$header.replaceChildren(new Icon(icons.folder).dom, `Notes in "${this.rootId}"`)
+
+    await this.updateTreeNoteIds()
   }
 }

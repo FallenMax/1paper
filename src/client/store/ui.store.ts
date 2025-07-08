@@ -1,4 +1,5 @@
 import { EventEmitter } from '../../common/event'
+import { listenDom } from '../util/dom'
 
 import { Storage } from '../util/storage'
 
@@ -7,7 +8,6 @@ export type Theme = 'light' | 'dark' | 'system'
 export type ViewMode = 'text' | 'markdown' | 'html'
 
 export const uiStorage = new Storage<{
-  recent: string[]
   theme: 'light' | 'dark' | 'system'
   treeVisible: boolean
 }>('ui')
@@ -15,7 +15,6 @@ export const uiStorage = new Storage<{
 export class UiStore extends EventEmitter<{
   themeChanged: Theme
   viewModeChanged: ViewMode
-  recentVisitedChanged: string[]
   treeVisibilityChanged: boolean
 }> {
   static shared = new UiStore()
@@ -27,15 +26,15 @@ export class UiStore extends EventEmitter<{
   }
   constructor() {
     super()
-    window.addEventListener('storage', (e) => {
-      if (e.key === uiStorage.prefixed('theme')) {
-        this.emit('themeChanged', e.newValue as Theme)
-      } else if (e.key === uiStorage.prefixed('recent')) {
-        this.emit('recentVisitedChanged', uiStorage.get('recent') ?? [])
-      } else if (e.key === uiStorage.prefixed('treeVisible')) {
-        this.emit('treeVisibilityChanged', uiStorage.get('treeVisible') ?? true)
-      }
-    })
+    this.register(
+      listenDom(window, 'storage', (e) => {
+        if (e.key === uiStorage.prefixed('theme')) {
+          this.emit('themeChanged', e.newValue as Theme)
+        } else if (e.key === uiStorage.prefixed('treeVisible')) {
+          this.emit('treeVisibilityChanged', uiStorage.get('treeVisible') ?? true)
+        }
+      }),
+    )
   }
   //-------------- Theme  --------------
   getTheme() {
@@ -67,24 +66,6 @@ export class UiStore extends EventEmitter<{
     history.replaceState(null, '', url.href)
 
     this.emit('viewModeChanged', viewMode)
-  }
-  //-------------- Recent --------------
-  markVisited(id: string) {
-    const visited = uiStorage.get('recent') ?? []
-    const existIndex = visited.indexOf(id)
-    if (existIndex !== -1) {
-      visited.splice(existIndex, 1)
-    }
-    visited.unshift(id)
-    uiStorage.set('recent', visited)
-  }
-
-  getRecentVisited(): string[] {
-    return uiStorage.get('recent') ?? []
-  }
-
-  clearRecentVisited() {
-    uiStorage.remove('recent')
   }
   //-------------- Sidebar (Tree) --------------
   isTreeVisible() {

@@ -45,3 +45,38 @@ export function h(
 
   return $el
 }
+
+/** Listens for DOM events and returns a cleanup function */
+export function listenDom<K extends keyof BroadcastChannelEventMap>(
+  element: BroadcastChannel,
+  type: K,
+  listener: (ev: BroadcastChannelEventMap[K]) => void,
+  options?: AddEventListenerOptions,
+): () => void
+export function listenDom<K extends keyof WindowEventMap>(
+  element: Window,
+  type: K,
+  listener: (ev: WindowEventMap[K]) => void,
+  options?: AddEventListenerOptions,
+): () => void
+export function listenDom<K extends keyof DocumentEventMap>(
+  element: Document,
+  type: K,
+  listener: (ev: DocumentEventMap[K]) => void,
+  options?: AddEventListenerOptions,
+): () => void
+export function listenDom<K extends keyof HTMLElementEventMap>(
+  element: HTMLElement,
+  type: K,
+  listener: (ev: HTMLElementEventMap[K]) => void,
+  options?: AddEventListenerOptions,
+): () => void
+export function listenDom(
+  element: EventTarget,
+  type: string,
+  listener: EventListenerOrEventListenerObject,
+  options?: AddEventListenerOptions,
+): () => void {
+  element.addEventListener(type, listener, options)
+  return () => element.removeEventListener(type, listener, options)
+}

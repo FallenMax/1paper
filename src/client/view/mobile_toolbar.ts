@@ -1,14 +1,15 @@
+import { Disposable } from '../../common/disposable'
 import { icons } from '../icon/icons'
 import { deindent } from '../lib/transformer/transformers/deindent'
 import { indent } from '../lib/transformer/transformers/indent'
 import { toggleList } from '../lib/transformer/transformers/toggle_list'
 import { IconButton } from '../ui/icon_button'
-import { h } from '../util/dom'
+import { h, listenDom } from '../util/dom'
 import { ViewController } from '../util/view_controller'
 import { Editor } from './editor'
 import './mobile_toolbar.css'
 
-export class MobileToolbar implements ViewController {
+export class MobileToolbar extends Disposable implements ViewController {
   private resizeObserver?: ResizeObserver
   private toolbarHeight = 48
 
@@ -17,6 +18,7 @@ export class MobileToolbar implements ViewController {
   private $deindent: IconButton
   private $toggleList: IconButton
   constructor(private editor: Editor) {
+    super()
     this.$indent = new IconButton({
       icon: icons.chevronForwardOutline,
       buttonOptions: {
@@ -54,23 +56,27 @@ export class MobileToolbar implements ViewController {
 
     // Re-position the toolbar when the viewport changes
     {
-      window.visualViewport?.addEventListener('resize', this.rePosition)
-      window.visualViewport?.addEventListener('scroll', this.rePosition)
-      window.addEventListener('scroll', this.rePosition)
+      this.register(listenDom(window.visualViewport as any, 'resize', this.rePosition))
+      this.register(listenDom(window.visualViewport as any, 'scroll', this.rePosition))
+      this.register(listenDom(window, 'scroll', this.rePosition))
       this.rePosition()
     }
 
     // Show/hide the toolbar when the editor is focused/blurred
     {
       const $textarea = this.editor.dom
-      $textarea.addEventListener('focus', () => {
-        this.toggle()
-      })
-      $textarea.addEventListener('blur', () => {
-        setTimeout(() => {
+      this.register(
+        listenDom($textarea, 'focus', () => {
           this.toggle()
-        }, 0) // wait a tick in case the textarea is focused again
-      })
+        }),
+      )
+      this.register(
+        listenDom($textarea, 'blur', () => {
+          setTimeout(() => {
+            this.toggle()
+          }, 0) // wait a tick in case the textarea is focused again
+        }),
+      )
       this.toggle()
     }
   }
@@ -85,7 +91,7 @@ export class MobileToolbar implements ViewController {
     this.dom.style.top = `${offsetTop - this.toolbarHeight}px`
   }
 
-  destroy() {
-    this.resizeObserver?.disconnect()
+  setEditor(editor: Editor) {
+    this.editor = editor
   }
 }
