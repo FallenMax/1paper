@@ -201,6 +201,12 @@ export class Sidebar extends Disposable implements ViewController {
         return
       }
 
+      // Prevent moving to descendant path
+      if (newId.startsWith(oldId + '/')) {
+        alert(`Cannot move "${oldId}" to its own descendant path "${newId}".`)
+        return
+      }
+
       // Show confirmation dialog
       let confirmMessage = `Are you sure you want to move "${oldId}" to "${newId}"?`
 

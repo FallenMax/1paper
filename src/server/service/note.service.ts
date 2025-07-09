@@ -157,6 +157,11 @@ export class NoteService extends Disposable {
         throw new UserError(ErrorCode.NOTE_NOT_FOUND)
       }
 
+      // Prevent moving a note to its own descendant path
+      if (newId.startsWith(oldId + '/')) {
+        throw new UserError(ErrorCode.INVALID_OPERATION)
+      }
+
       // Get all descendant notes that will be moved
       const descendantIds = await this.doGetDescendantNoteIds(oldId)
       const allOldIds = [oldId, ...descendantIds]

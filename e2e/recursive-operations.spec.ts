@@ -75,7 +75,6 @@ test.describe('Recursive Operations', () => {
     await page.goto(`/${rootNote}`)
     await waitForEditor(page)
 
-    await page.click('button[title="Menu"]')
     await page.click('button[title="Tree"]')
     await page.waitForSelector('aside', { state: 'visible' })
 
@@ -134,7 +133,6 @@ test.describe('Recursive Operations', () => {
     await page.goto(`/${sourceRoot}`)
     await waitForEditor(page)
 
-    await page.click('button[title="Menu"]')
     await page.click('button[title="Tree"]')
     await page.waitForSelector('aside', { state: 'visible' })
 
@@ -189,6 +187,76 @@ test.describe('Recursive Operations', () => {
     expect(sourceContent).toBe('')
   })
 
+  test('should prevent moving note to its own descendant path', async ({ page }) => {
+    const parentNote = 'parent-' + Date.now()
+    const childNote = `${parentNote}/child`
+    const invalidTarget = `${parentNote}/child/invalid`
+
+    // Create parent and child notes
+    await page.goto(`/${parentNote}`)
+    await waitForEditor(page)
+    await setEditorContent(page, 'Parent content')
+    await waitForSaveIdle(page)
+
+    await page.goto(`/${childNote}`)
+    await waitForEditor(page)
+    await setEditorContent(page, 'Child content')
+    await waitForSaveIdle(page)
+
+    // Go back to parent and try to move to invalid location
+    await page.goto(`/${parentNote}`)
+    await waitForEditor(page)
+
+    await page.click('button[title="Tree"]')
+    await page.waitForSelector('aside', { state: 'visible' })
+
+    const noteItem = page.locator(`.note-item:has-text("${parentNote.split('/').pop()}")`).first()
+    await noteItem.hover()
+    await page.waitForTimeout(500)
+
+    // Setup dialog handlers
+    let dialogCount = 0
+    let errorShown = false
+
+    page.on('dialog', (dialog) => {
+      dialogCount++
+      if (dialogCount === 1) {
+        // First dialog asks for new path
+        dialog.accept(invalidTarget)
+      } else if (dialogCount === 2) {
+        // Should not reach confirmation dialog due to error
+        dialog.dismiss()
+      }
+    })
+
+    // Listen for error messages
+    page.on('console', (msg) => {
+      if (msg.type() === 'error' && msg.text().includes('Cannot move a note to its own descendant path')) {
+        errorShown = true
+      }
+    })
+
+    // Trigger move operation
+    await noteItem.locator('.select-wrapper select').selectOption('move', { force: true })
+    await page.waitForTimeout(1000)
+
+    // Verify notes were NOT moved (content should still be there)
+    const editorContent = await getEditorContent(page)
+    expect(editorContent).toBe('Parent content')
+
+    // Verify child note still exists at original location
+    await page.goto(`/${childNote}`)
+    await waitForEditor(page)
+    const childContent = await getEditorContent(page)
+    expect(childContent).toBe('Child content')
+
+    // Verify invalid target doesn't exist
+    await page.goto(`/${invalidTarget}`)
+    await waitForEditor(page)
+    const invalidContent = await getEditorContent(page)
+    expect(invalidContent).toBe('')
+  })
+
   test('should handle wrong confirmation number', async ({ page }) => {
     const testNote = 'wrong-confirm-' + Date.now()
     const childNote = `${testNote}/child`
@@ -208,7 +276,6 @@ test.describe('Recursive Operations', () => {
     await page.goto(`/${testNote}`)
     await waitForEditor(page)
 
-    await page.click('button[title="Menu"]')
     await page.click('button[title="Tree"]')
     await page.waitForSelector('aside', { state: 'visible' })
 

@@ -39,10 +39,12 @@ export enum ErrorCode {
   EXCEEDED_MAX_SIZE,
   NOTE_NOT_FOUND,
   TARGET_ALREADY_EXISTS,
+  INVALID_OPERATION,
 }
 
 export const ErrorMessage: { [K in ErrorCode]?: string } = {
   [ErrorCode.UNKNOWN]: 'Something went wrong. Please refresh page and try again.',
   [ErrorCode.NOTE_NOT_FOUND]: 'Note is empty.',
   [ErrorCode.TARGET_ALREADY_EXISTS]: 'Target location already exists.',
+  [ErrorCode.INVALID_OPERATION]: 'Cannot move a note to its own descendant path.',
 }

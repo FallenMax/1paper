@@ -163,8 +163,6 @@ test.describe('Sidebar Operations', () => {
     await page.goto(`/${rootNote}`)
     await waitForEditor(page)
 
-    // Toggle sidebar visibility (first expand menu, then click tree button)
-    await page.click('button[title="Menu"]')
     await page.click('button[title="Tree"]')
     await page.waitForSelector('aside', { state: 'visible' })
 
@@ -185,8 +183,6 @@ test.describe('Sidebar Operations', () => {
     await setEditorContent(page, 'This will be deleted')
     await waitForSaveIdle(page)
 
-    // Toggle sidebar (first expand menu, then click tree button)
-    await page.click('button[title="Menu"]')
     await page.click('button[title="Tree"]')
     await page.waitForSelector('aside', { state: 'visible' })
 
@@ -224,8 +220,6 @@ test.describe('Sidebar Operations', () => {
     await setEditorContent(page, 'This will be moved')
     await waitForSaveIdle(page)
 
-    // Toggle sidebar (first expand menu, then click tree button)
-    await page.click('button[title="Menu"]')
     await page.click('button[title="Tree"]')
     await page.waitForSelector('aside', { state: 'visible' })
 

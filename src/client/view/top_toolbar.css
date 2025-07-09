@@ -3,27 +3,6 @@
   font-size: 1rem;
   display: flex;
   align-items: center;
-
-  .menu-toggle {
-    margin-right: 4px;
-  }
-
-  .controls {
-    max-width: 0;
-    overflow: hidden;
-    transition: max-width 0.15s ease;
-    flex-shrink: 0;
-  }
-  &.is-expanded .controls {
-    max-width: var(--max-width);
-  }
-  .controls-inner {
-    width: fit-content;
-    height: fit-content;
-    white-space: nowrap;
-
-    display: flex;
-    align-items: center;
-    gap: 4px;
-  }
+  gap: 2px;
+  opacity: 0.5;
 }
