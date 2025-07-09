@@ -9,8 +9,7 @@ export class UserError extends Error {
 
   constructor(msgOrCode: string | ErrorCode, code?: ErrorCode, data?: any) {
     const errmsg =
-      (typeof msgOrCode === 'string' ? msgOrCode : ErrorMessage[msgOrCode]) ??
-      ErrorMessage[ErrorCode.UNKNOWN]
+      (typeof msgOrCode === 'string' ? msgOrCode : ErrorMessage[msgOrCode]) ?? ErrorMessage[ErrorCode.UNKNOWN]
     const errcode = typeof msgOrCode === 'string' ? code : msgOrCode
     super(errmsg)
 
@@ -38,9 +37,12 @@ export enum ErrorCode {
   UNKNOWN = 10000,
   HASH_MISMATCH,
   EXCEEDED_MAX_SIZE,
+  NOTE_NOT_FOUND,
+  TARGET_ALREADY_EXISTS,
 }
 
 export const ErrorMessage: { [K in ErrorCode]?: string } = {
-  [ErrorCode.UNKNOWN]:
-    'Something went wrong. Please refresh page and try again.',
+  [ErrorCode.UNKNOWN]: 'Something went wrong. Please refresh page and try again.',
+  [ErrorCode.NOTE_NOT_FOUND]: 'Note is empty.',
+  [ErrorCode.TARGET_ALREADY_EXISTS]: 'Target location already exists.',
 }

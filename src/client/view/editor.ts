@@ -1,5 +1,5 @@
 import hashString from 'string-hash'
-import { ErrorCode } from '../../common/error'
+import { ErrorCode, UserError } from '../../common/error'
 import { EventEmitter } from '../../common/event'
 import { applyPatch, createPatch, merge3, Patch } from '../../common/lib/diff3'
 import { getTransformer } from '../lib/transformer/transformer'
@@ -7,16 +7,11 @@ import { END, START, TextTransformer } from '../lib/transformer/transformer.type
 import { NoteService } from '../service/note.service'
 import { h, listenDom } from '../util/dom'
 import { isDebugging } from '../util/env'
-import { UserError } from '../util/error'
+import { showError } from '../util/error'
 import { ViewController } from '../util/view_controller'
 import './editor.css'
 
 const noop = (_error?: any) => {}
-
-const showError = (e: any) => {
-  console.error(e)
-  window.alert((e && e.errmsg) || 'Unknown error occurred, please refresh to retry.')
-}
 
 // attempt to set textarea value while preserving selected range
 const setTextareaValue = (textarea: HTMLTextAreaElement, value: string) => {

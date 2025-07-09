@@ -21,7 +21,16 @@ export class NoteService extends EventEmitter<{
   fetchTreeNoteIds(id: string) {
     return this.rpcClient.call('getTreeNoteIds', { id })
   }
+  fetchDescendantNoteIds(id: string) {
+    return this.rpcClient.call('getDescendantNoteIds', { id })
+  }
   saveNote(id: string, patch: Patch, hash: number) {
     return this.rpcClient.call('save', { id, p: patch, h: hash })
+  }
+  deleteNote(id: string) {
+    return this.rpcClient.call('delete', { id })
+  }
+  moveNote(id: string, newId: string) {
+    return this.rpcClient.call('move', { id, newId })
   }
 }

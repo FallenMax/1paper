@@ -1,11 +1,34 @@
+# macOS files
 .DS_Store
-.git
-node_modules
+
+# Version control
+.git/
+
+# Dependencies
+node_modules/
+
+# Test files and results
+e2e/
+test-results/
+playwright-report/
+
+# Logs and temporary files
 *.log
 *.zip
-.cache
-.vscode
-/tmp
+.cache/
+tmp/
+
+# Development environment
+.vscode/
+.eslintrc.js
+.prettierignore
+prettier.config.js
+
+# Personal files
+personal.todo
+plans/
+
+# Build outputs (uncomment if needed)
 # /public
 # /server
 # /common

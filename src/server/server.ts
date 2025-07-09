@@ -70,6 +70,9 @@ export class Server extends Disposable {
         getTreeNoteIds: async ({ id }) => {
           return await this.noteService.getTreeNoteIds(id)
         },
+        getDescendantNoteIds: async ({ id }) => {
+          return await this.noteService.getDescendantNoteIds(id)
+        },
         save: async ({ id, p, h }, client) => {
           console.info(`saving note for: ${id}`)
           // FIXME queue
@@ -87,6 +90,40 @@ export class Server extends Disposable {
               exclude: client.id,
             },
           )
+        },
+        delete: async ({ id }, client) => {
+          console.info(`deleting note: ${id}`)
+          const result = await this.noteService.deleteNote(id, client.id)
+
+          // Notify clients about all deleted notes
+          for (const deletedNote of result.deletedNotes) {
+            this.rpcServer.callClient(
+              'noteUpdate',
+              { id: deletedNote.id, h: deletedNote.hash, p: deletedNote.patch },
+              {
+                rooms: [deletedNote.id],
+              },
+            )
+          }
+
+          return result
+        },
+        move: async ({ id, newId }, client) => {
+          console.info(`moving note from ${id} to ${newId}`)
+          const results = await this.noteService.moveNote(id, newId, client.id)
+
+          // Notify clients about both operations
+          for (const result of results) {
+            this.rpcServer.callClient(
+              'noteUpdate',
+              { id: result.id, h: result.hash, p: result.patch },
+              {
+                rooms: [result.id],
+              },
+            )
+          }
+
+          return results
         },
       }),
     )

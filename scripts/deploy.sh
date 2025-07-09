@@ -27,7 +27,8 @@ if [[ $skip_build == '1' ]]; then
 else
   pnpm install
   pnpm run type
-  pnpm run test --run
+  pnpm run test
+  pnpm run e2e
   pnpm run build
 fi
 

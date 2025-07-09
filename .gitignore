@@ -11,3 +11,5 @@ node_modules
 personal.todo
 
 .env.sh
+/playwright-report
+/test-results

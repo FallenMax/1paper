@@ -1,5 +1,6 @@
 import * as SocketIO from 'socket.io-client'
 import { ClientAPIHandlers } from '../../common/api.type'
+import { UserError } from '../../common/error'
 import { EventEmitter } from '../../common/event'
 
 type AnyFunction = (...args: any[]) => any
@@ -40,7 +41,7 @@ export class RpcClient<ServerAPI extends APIMap, ClientAPI extends APIMap> exten
       try {
         this.socket.emit(method as string, params, (response) => {
           if (response?.errcode) {
-            reject(response)
+            reject(new UserError(response.errcode))
           } else {
             resolve(response)
           }

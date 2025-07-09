@@ -2,13 +2,11 @@ import * as path from 'path'
 
 export const env = process.env
 
-export const isDev = /(dev|test)/.test(env.NODE_ENV || '')
+export const isDev = /dev/.test(env.NODE_ENV || '')
 export const isTesting = /test/.test(env.NODE_ENV || '')
 
 const root = process.cwd()
-const staticDir = isDev
-  ? path.resolve(root, './src/client')
-  : path.resolve(root, './public')
+const staticDir = isDev ? path.resolve(root, './src/client') : path.resolve(root, './public')
 export const config = {
   port: Number(env.PORT || 3333),
   mongodb: {

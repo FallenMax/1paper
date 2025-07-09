@@ -4,7 +4,10 @@ import { NoteService } from '../service/note.service'
 import { UiStore } from '../store/ui.store'
 import { Icon } from '../ui/icon'
 import { Link } from '../ui/link'
+import { Select } from '../ui/select'
 import { h } from '../util/dom'
+import { showError } from '../util/error'
+import { Router } from '../util/router'
 import { ViewController } from '../util/view_controller'
 import './sidebar.css'
 
@@ -108,14 +111,139 @@ export class Sidebar extends Disposable implements ViewController {
   }
 
   private makeTreeItem(node: TreeNode, level: number): HTMLElement {
+    const noteId = node.fullPath.slice(1)
+    const isCurrentNote = noteId === this.id
+
+    const menuSelect = new Select({
+      icon: icons.ellipsisHorizontal,
+      label: 'Actions',
+      initialValue: '',
+      options: [
+        { label: 'Delete', value: 'delete' },
+        { label: 'Move', value: 'move' },
+      ],
+      onChange: async (action) => {
+        if (action === 'delete') {
+          await this.handleDelete(noteId)
+        } else if (action === 'move') {
+          await this.handleMove(noteId)
+        }
+      },
+    })
+
+    const linkElement = new Link({ href: node.fullPath, children: [node.segment] })
+
+    const menuWrapper = h('div', { className: 'tree-item-menu' }, [menuSelect.dom])
+
     return h(
       'li',
       {
-        className: `note-item ${node.fullPath.slice(1) === this.id ? 'is-current' : ''}`,
+        className: `note-item ${isCurrentNote ? 'is-current' : ''}`,
         style: { paddingLeft: `${level * 16}px` },
       },
-      [new Link({ href: node.fullPath, children: [node.segment] }).dom],
+      [h('div', { className: 'tree-item-content' }, [linkElement.dom, menuWrapper])],
     )
+  }
+
+  private async handleDelete(noteId: string): Promise<void> {
+    try {
+      // Get all descendant notes that will be affected
+      const descendantIds = await this.noteService.fetchDescendantNoteIds(noteId)
+      const allAffectedIds = [noteId, ...descendantIds]
+
+      // Show confirmation dialog
+      let confirmMessage = `Are you sure you want to delete "${noteId}"?`
+
+      if (descendantIds.length > 0) {
+        confirmMessage += `\n\nThis will also delete ${descendantIds.length} child note(s):`
+        const noteList = allAffectedIds.map((id) => `• ${id}`).join('\n')
+        confirmMessage += `\n${noteList}`
+
+        const expectedNumber = allAffectedIds.length
+        const userInput = prompt(
+          `${confirmMessage}\n\nTo confirm this dangerous operation, please enter the number of notes that will be deleted: ${expectedNumber}`,
+        )
+
+        if (userInput !== expectedNumber.toString()) {
+          return // User cancelled or entered wrong number
+        }
+      } else {
+        // Single note deletion, simple confirmation
+        if (!confirm(confirmMessage)) {
+          return
+        }
+      }
+
+      // Proceed with deletion
+      const result = await this.noteService.deleteNote(noteId)
+
+      // If we just deleted the current note, navigate away
+      if (noteId === this.id && this.id !== this.rootId) {
+        await Router.shared.navigateTo(this.rootId)
+      } else {
+        // Refresh the tree
+        await this.updateTreeNoteIds()
+      }
+    } catch (error) {
+      showError(error)
+    }
+  }
+
+  private async handleMove(oldId: string): Promise<void> {
+    try {
+      // Get all descendant notes that will be affected
+      const descendantIds = await this.noteService.fetchDescendantNoteIds(oldId)
+      const allAffectedIds = [oldId, ...descendantIds]
+
+      // Get new path from user
+      const newId = prompt(`Enter new path for "${oldId}":`, oldId)
+      if (!newId || newId === oldId) {
+        return
+      }
+
+      // Show confirmation dialog
+      let confirmMessage = `Are you sure you want to move "${oldId}" to "${newId}"?`
+
+      if (descendantIds.length > 0) {
+        confirmMessage += `\n\nThis will also move ${descendantIds.length} child note(s):`
+
+        // Show affected notes with their new paths
+        const moveList = allAffectedIds
+          .map((id) => {
+            const targetId = id.replace(oldId, newId)
+            return `• ${id} → ${targetId}`
+          })
+          .join('\n')
+        confirmMessage += `\n${moveList}`
+
+        const expectedNumber = allAffectedIds.length
+        const userInput = prompt(
+          `${confirmMessage}\n\nTo confirm this operation, please enter the number of notes that will be moved: ${expectedNumber}`,
+        )
+
+        if (userInput !== expectedNumber.toString()) {
+          return // User cancelled or entered wrong number
+        }
+      } else {
+        // Single note move, simple confirmation
+        if (!confirm(confirmMessage)) {
+          return
+        }
+      }
+
+      // Proceed with move
+      const result = await this.noteService.moveNote(oldId, newId)
+
+      // If we just moved the current note, navigate to new location
+      if (oldId === this.id) {
+        await Router.shared.navigateTo(newId)
+      } else {
+        // Refresh the tree
+        await this.updateTreeNoteIds()
+      }
+    } catch (error) {
+      showError(error)
+    }
   }
 
   private applyExpandState() {

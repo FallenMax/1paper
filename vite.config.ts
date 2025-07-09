@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { defineConfig } from 'vite'
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   build: {
@@ -16,6 +16,10 @@ export default defineConfig({
         },
       },
     },
+  },
+
+  test: {
+    exclude: ['e2e/**/*.spec.ts', 'e2e/**/*.spec.js', 'node_modules/**'],
   },
 
   server: {
