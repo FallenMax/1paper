@@ -40,6 +40,17 @@ export class Sidebar extends Disposable implements ViewController {
         this.applyExpandState()
       }),
     )
+
+    // Listen for sidebar updates from server
+    this.register(
+      this.noteService.on('treeUpdate', ({ rootId }) => {
+        // Only refresh if this sidebar's root matches the notification
+        if (this.rootId === rootId) {
+          this.updateTreeNoteIds()
+        }
+      }),
+    )
+
     this.applyExpandState()
     await this.updateTreeNoteIds()
   }

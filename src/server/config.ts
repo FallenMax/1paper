@@ -11,7 +11,7 @@ export const config = {
   port: Number(env.PORT || 3333),
   mongodb: {
     url: env.MONGODB_URL || `mongodb://localhost:27017`,
-    database: env.MONGODB_DATABASE || 'notepad_dev',
+    database: env.MONGODB_DATABASE || (isTesting ? 'notepad_test' : 'notepad_dev'),
   },
   staticDir,
 }

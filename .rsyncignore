@@ -7,10 +7,6 @@
 # Dependencies
 node_modules/
 
-# Test files and results
-e2e/
-test-results/
-playwright-report/
 
 # Logs and temporary files
 *.log

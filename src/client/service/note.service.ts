@@ -5,6 +5,7 @@ import { RpcClient } from '../lib/rpc_client'
 
 export class NoteService extends EventEmitter<{
   noteUpdate: { id: string; h: number; p: Patch }
+  treeUpdate: { rootId: string }
 }> {
   constructor(private rpcClient: RpcClient<ServerAPI, ClientAPI>) {
     super()
@@ -14,6 +15,12 @@ export class NoteService extends EventEmitter<{
   }
   unsubscribe(id: string) {
     return this.rpcClient.call('unsubscribe', { id })
+  }
+  subscribeTree(id: string) {
+    return this.rpcClient.call('subscribeTree', { id })
+  }
+  unsubscribeTree(id: string) {
+    return this.rpcClient.call('unsubscribeTree', { id })
   }
   fetchNote(id: string) {
     return this.rpcClient.call('get', { id })

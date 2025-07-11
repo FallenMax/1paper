@@ -129,8 +129,11 @@ export class Editor
       this.isCompositing = false
 
       // Subscribe to note updates
+      const rootId = id.split('/')[0]
       await noteService.subscribe(id)
+      await noteService.subscribeTree(rootId)
       this.register(() => noteService.unsubscribe(id))
+      this.register(() => noteService.unsubscribeTree(rootId))
 
       // Setup beforeunload handler
       this.register(listenDom(window, 'beforeunload', this.handleBeforeUnload))
@@ -138,6 +141,7 @@ export class Editor
       // Setup periodic sync timer
       this.periodicSyncTimer = window.setInterval(() => {
         noteService.subscribe(id) // in case server restarted and subscriptions are lost
+        noteService.subscribeTree(rootId)
         this.deferSync()
       }, 1000 * 60)
       this.register(() => window.clearInterval(this.periodicSyncTimer))
@@ -315,7 +319,7 @@ export class Editor
 
   //-------------- Event Handlers --------------
 
-  private handleNoteUpdate = (params: { h: number; p: Patch }) => {
+  private handleNoteUpdate = (params: { id: string; h: number; p: Patch }) => {
     const { h: hash, p: patch } = params
     const note = applyPatch(this.remote, patch)
     const verified = note != null && hashString(note) === hash

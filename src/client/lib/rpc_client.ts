@@ -1,5 +1,5 @@
 import * as SocketIO from 'socket.io-client'
-import { ClientAPIHandlers } from '../../common/api.type'
+import { ServerAPIHandlers } from '../../common/api.type'
 import { UserError } from '../../common/error'
 import { EventEmitter } from '../../common/event'
 
@@ -12,7 +12,7 @@ export class RpcClient<ServerAPI extends APIMap, ClientAPI extends APIMap> exten
 }> {
   private socket: SocketIO.Socket
 
-  constructor(clientMethods: ClientAPIHandlers<ClientAPI>) {
+  constructor(clientMethods: ServerAPIHandlers<ClientAPI>) {
     super()
     this.socket = SocketIO.io(location.origin, {
       transports: ['websocket'], // Skip polling, use WebSocket directly

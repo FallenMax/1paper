@@ -32,6 +32,7 @@ export class Server extends Disposable {
 
     // service
     this.logger.info('initializing note service...')
+
     this.noteService = this.register(new NoteService(this.connection))
 
     // http server
@@ -64,6 +65,12 @@ export class Server extends Disposable {
         unsubscribe: ({ id }, client) => {
           this.rpcServer.leaveRoom(client.id, id)
         },
+        subscribeTree: ({ id }, client) => {
+          this.rpcServer.joinRoom(client.id, id + '/')
+        },
+        unsubscribeTree: ({ id }, client) => {
+          this.rpcServer.leaveRoom(client.id, id + '/')
+        },
         get: async ({ id }) => {
           return await this.noteService.getNote(id)
         },
@@ -75,56 +82,36 @@ export class Server extends Disposable {
         },
         save: async ({ id, p, h }, client) => {
           console.info(`saving note for: ${id}`)
-          // FIXME queue
           await this.noteService.patchNote({
             id,
             patch: p,
             hash: h,
-            source: client.id,
+            byClient: client.id,
           })
-          this.rpcServer.callClient(
-            'noteUpdate',
-            { id, h, p },
-            {
-              rooms: [id],
-              exclude: client.id,
-            },
-          )
         },
-        delete: async ({ id }, client) => {
+        delete: async ({ id }) => {
           console.info(`deleting note: ${id}`)
-          const result = await this.noteService.deleteNote(id, client.id)
-
-          // Notify clients about all deleted notes
-          for (const deletedNote of result.deletedNotes) {
-            this.rpcServer.callClient(
-              'noteUpdate',
-              { id: deletedNote.id, h: deletedNote.hash, p: deletedNote.patch },
-              {
-                rooms: [deletedNote.id],
-              },
-            )
-          }
-
-          return result
+          await this.noteService.deleteRecursively(id)
         },
-        move: async ({ id, newId }, client) => {
+        move: async ({ id, newId }) => {
           console.info(`moving note from ${id} to ${newId}`)
-          const results = await this.noteService.moveNote(id, newId, client.id)
-
-          // Notify clients about both operations
-          for (const result of results) {
-            this.rpcServer.callClient(
-              'noteUpdate',
-              { id: result.id, h: result.hash, p: result.patch },
-              {
-                rooms: [result.id],
-              },
-            )
-          }
-
-          return results
+          await this.noteService.moveRecursively(id, newId)
         },
+      }),
+    )
+    this.register(
+      this.noteService.on('noteUpdate', (payload) => {
+        this.rpcServer.callClient('noteUpdate', payload, {
+          rooms: [payload.id],
+          exclude: payload.byClient,
+        })
+      }),
+    )
+    this.register(
+      this.noteService.on('treeUpdate', (payload) => {
+        this.rpcServer.callClient('treeUpdate', payload, {
+          rooms: [payload.rootId + '/'],
+        })
       }),
     )
 

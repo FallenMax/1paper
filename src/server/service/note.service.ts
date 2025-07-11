@@ -1,6 +1,6 @@
 import hashString = require('string-hash')
-import { Disposable } from '../../common/disposable'
 import { ErrorCode, UserError } from '../../common/error'
+import { EventEmitter } from '../../common/event'
 import { applyPatch, createPatch, Patch } from '../../common/lib/diff3'
 import { DbConnection, Table } from '../lib/database'
 
@@ -17,96 +17,32 @@ interface PatchNodeOptions {
   id: string
   patch: Patch
   hash: Hash
-  source?: string
+  byClient: string | undefined
 }
 
-export class NoteService extends Disposable {
+export class NoteService extends EventEmitter<{
+  noteUpdate: { id: string; h: number; p: Patch; byClient: string | undefined }
+  treeUpdate: { rootId: string }
+}> {
   private table: Table<Note>
+  private taskPromise = Promise.resolve() as unknown as Promise<any>
 
   constructor(private connection: DbConnection) {
     super()
     this.table = new Table<Note>(this.connection, 'notes')
   }
 
-  private taskPromise = Promise.resolve() as unknown as Promise<any>
-
-  /**
-   * Queue a task to avoid race conditions
-   */
-  private async queueTask<T>(task: () => Promise<T>): Promise<T> {
-    // Wait for previous task to complete
-    await Promise.allSettled([this.taskPromise])
-
-    // Execute the new task and update the promise chain
-    this.taskPromise = task()
-    return this.taskPromise
-  }
-
   async patchNote(options: PatchNodeOptions) {
     return this.queueTask(() => this.doPatchNote(options))
   }
 
-  private async doPatchNote({ id, patch, hash, source }: PatchNodeOptions): Promise<{ hash: number; patch: Patch }> {
-    const existNote = await this.doGetNote(id)
-    const wasEmpty = existNote.note.length === 0
-
-    const result = applyPatch(existNote.note, patch)
-    if (result == null || hash !== hashString(result)) {
-      throw new UserError(ErrorCode.HASH_MISMATCH)
-    }
-    if (result.length > NOTE_MAX_SIZE) {
-      throw new UserError(ErrorCode.EXCEEDED_MAX_SIZE)
-    }
-
-    const empty = result.length === 0
-
-    if (empty) {
-      await this.table.remove({ _id: id })
-    } else {
-      await this.table.upsert({ _id: id }, { note: result, _id: id })
-    }
-
-    if (empty !== wasEmpty) {
-      // [TODO] notify client
-    }
-    return { hash, patch }
-  }
-
-  /**
-   * Get all descendant note IDs for a given note ID
-   */
-  private async doGetDescendantNoteIds(id: string): Promise<string[]> {
-    const results = await this.table.collection
-      .find({ _id: { $regex: `^${id}/` } }, { projection: { _id: 1 } })
-      .toArray()
-    return results.filter((item) => !item._id.endsWith('/')).map((item) => item._id)
-  }
-
-  /**
-   * Get all descendant note IDs for a given note ID (queued version)
-   */
   async getDescendantNoteIds(id: string): Promise<string[]> {
     return this.queueTask(() => this.doGetDescendantNoteIds(id))
   }
 
-  /**
-   * Delete a note and all its descendants recursively
-   */
-  async deleteNote(
-    id: string,
-    source?: string,
-  ): Promise<{
-    deletedNotes: Array<{ id: string; hash: number; patch: Patch }>
-    affectedCount: number
-  }> {
-    return this.queueTask(async () => {
-      // Get the main note
-      const existingNote = await this.doGetNote(id)
-
-      // Get all descendant notes
+  async deleteRecursively(id: string): Promise<void> {
+    await this.queueTask(async () => {
       const descendantIds = await this.doGetDescendantNoteIds(id)
-
-      // Filter out empty notes (they don't really exist)
       const allIds = [id, ...descendantIds]
       const existingNotes = await Promise.all(
         allIds.map(async (noteId) => {
@@ -117,46 +53,21 @@ export class NoteService extends Disposable {
 
       const notesToDelete = existingNotes.filter(({ note }) => note.note.length > 0)
 
-      if (notesToDelete.length === 0) {
-        // No actual notes to delete
-        return {
-          deletedNotes: [],
-          affectedCount: 0,
-        }
-      }
-
       // Delete all notes by setting them to empty
-      const deleteResults = await Promise.all(
-        notesToDelete.map(async ({ id: noteId, note }) => {
-          const patch = createPatch(note.note, '')
-          const hash = hashString('')
-          const result = await this.doPatchNote({ id: noteId, patch, hash, source })
-          return { id: noteId, ...result }
-        }),
-      )
-
-      return {
-        deletedNotes: deleteResults,
-        affectedCount: notesToDelete.length,
+      for (const { id: noteId, note } of notesToDelete) {
+        const patch = createPatch(note.note, '')
+        const hash = hashString('')
+        try {
+          await this.doPatchNote({ id: noteId, patch, hash, byClient: undefined })
+        } catch (error) {
+          console.error(error)
+        }
       }
     })
   }
 
-  /**
-   * Move a note and all its descendants recursively
-   */
-  async moveNote(
-    oldId: string,
-    newId: string,
-    source?: string,
-  ): Promise<Array<{ id: string; hash: number; patch: Patch }>> {
-    return this.queueTask(async () => {
-      // Get the main note
-      const existingNote = await this.doGetNote(oldId)
-      if (existingNote.note.length === 0) {
-        throw new UserError(ErrorCode.NOTE_NOT_FOUND)
-      }
-
+  async moveRecursively(oldId: string, newId: string) {
+    await this.queueTask(async () => {
       // Prevent moving a note to its own descendant path
       if (newId.startsWith(oldId + '/')) {
         throw new UserError(ErrorCode.INVALID_OPERATION)
@@ -166,13 +77,11 @@ export class NoteService extends Disposable {
       const descendantIds = await this.doGetDescendantNoteIds(oldId)
       const allOldIds = [oldId, ...descendantIds]
 
-      // Check if target root already exists
+      // Check if target tree already exists
       const targetNote = await this.doGetNote(newId)
       if (targetNote.note.length > 0) {
         throw new UserError(ErrorCode.TARGET_ALREADY_EXISTS)
       }
-
-      // Check if any target descendants already exist
       const targetDescendantIds = await this.doGetDescendantNoteIds(newId)
       if (targetDescendantIds.length > 0) {
         throw new UserError(ErrorCode.TARGET_ALREADY_EXISTS)
@@ -192,9 +101,7 @@ export class NoteService extends Disposable {
         throw new UserError(ErrorCode.NOTE_NOT_FOUND)
       }
 
-      // Create move operations for all notes
       const moveOperations = notesToMove.map(({ id, note }) => {
-        // Ensure precise path replacement
         const targetId = id === oldId ? newId : id.replace(oldId + '/', newId + '/')
         return {
           oldId: id,
@@ -203,27 +110,35 @@ export class NoteService extends Disposable {
         }
       })
 
-      // Execute all move operations
-      const results: Array<{ id: string; hash: number; patch: Patch }> = []
-
       // First, create all new notes
       for (const { newId: targetId, content } of moveOperations) {
         const patch = createPatch('', content)
         const hash = hashString(content)
-        const createResult = await this.doPatchNote({ id: targetId, patch, hash, source })
-        results.push({ id: targetId, ...createResult })
+        await this.doPatchNote({ id: targetId, patch, hash, byClient: undefined })
       }
 
       // Then, delete all old notes
       for (const { oldId: sourceId, content } of moveOperations) {
         const patch = createPatch(content, '')
         const hash = hashString('')
-        const deleteResult = await this.doPatchNote({ id: sourceId, patch, hash, source })
-        results.push({ id: sourceId, ...deleteResult })
+        await this.doPatchNote({ id: sourceId, patch, hash: hash, byClient: undefined })
       }
-
-      return results
     })
+  }
+
+  async getNote(id: string): Promise<Note> {
+    return this.queueTask(() => this.doGetNote(id))
+  }
+
+  async getTreeNoteIds(id: string): Promise<string[]> {
+    return this.queueTask(() => this.doGetTreeNoteIds(id))
+  }
+
+  //-------------- Implementation --------------
+  private async queueTask<T>(task: () => Promise<T>): Promise<T> {
+    await Promise.allSettled([this.taskPromise])
+    this.taskPromise = task()
+    return this.taskPromise
   }
 
   private async doGetNote(id: string): Promise<Note> {
@@ -235,10 +150,6 @@ export class NoteService extends Disposable {
       _id: id,
       note: '',
     }
-  }
-
-  async getNote(id: string): Promise<Note> {
-    return this.queueTask(() => this.doGetNote(id))
   }
 
   private async doGetTreeNoteIds(id: string): Promise<string[]> {
@@ -255,7 +166,37 @@ export class NoteService extends Disposable {
     return results.filter((item) => !item._id.endsWith('/')).map((item) => item._id)
   }
 
-  async getTreeNoteIds(id: string): Promise<string[]> {
-    return this.queueTask(() => this.doGetTreeNoteIds(id))
+  private async doPatchNote({ id, patch, hash, byClient }: PatchNodeOptions) {
+    const existNote = await this.doGetNote(id)
+    const wasEmpty = existNote.note.length === 0
+
+    const result = applyPatch(existNote.note, patch)
+    if (result == null || hash !== hashString(result)) {
+      throw new UserError(ErrorCode.HASH_MISMATCH)
+    }
+    if (result.length > NOTE_MAX_SIZE) {
+      throw new UserError(ErrorCode.EXCEEDED_MAX_SIZE)
+    }
+
+    const empty = result.length === 0
+
+    if (empty) {
+      await this.table.remove({ _id: id })
+    } else {
+      await this.table.upsert({ _id: id }, { note: result, _id: id })
+    }
+
+    this.emit('noteUpdate', { id, h: hash, p: patch, byClient })
+    if (empty !== wasEmpty) {
+      const rootId = id.split('/')[0]!
+      this.emit('treeUpdate', { rootId })
+    }
+  }
+
+  private async doGetDescendantNoteIds(id: string): Promise<string[]> {
+    const results = await this.table.collection
+      .find({ _id: { $regex: `^${id}/` } }, { projection: { _id: 1 } })
+      .toArray()
+    return results.filter((item) => !item._id.endsWith('/')).map((item) => item._id)
   }
 }

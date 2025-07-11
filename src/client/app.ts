@@ -41,6 +41,9 @@ class App extends Disposable implements ViewController {
         noteUpdate: (payload) => {
           this.noteService.emit('noteUpdate', payload)
         },
+        treeUpdate: (payload) => {
+          this.noteService.emit('treeUpdate', payload)
+        },
       }),
     )
 
