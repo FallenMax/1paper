@@ -136,7 +136,11 @@ export class NoteService extends EventEmitter<{
 
   //-------------- Implementation --------------
   private async queueTask<T>(task: () => Promise<T>): Promise<T> {
-    await Promise.allSettled([this.taskPromise])
+    // Wait for the previous task to complete successfully
+    try {
+      await this.taskPromise
+    } catch (error) {}
+
     this.taskPromise = task()
     return this.taskPromise
   }

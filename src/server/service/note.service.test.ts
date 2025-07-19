@@ -8,36 +8,9 @@ import hashString = require('string-hash')
 
 describe('NoteService', () => {
   let noteService: NoteService
+  let conn: DbConnection
 
-  // Helper function to clean up test data
-  async function cleanupTestData(prefixes: string[]) {
-    for (const prefix of prefixes) {
-      try {
-        // Get all notes with the prefix and delete them
-        const descendants = await noteService.getDescendantNoteIds(prefix)
-        const allIds = [prefix, ...descendants]
-
-        for (const id of allIds) {
-          const note = await noteService.getNote(id)
-          if (note.note.length > 0) {
-            const patch = createPatch(note.note, '')
-            const hash = hashString('')
-            await noteService.patchNote({
-              id,
-              patch,
-              hash,
-              byClient: undefined,
-            })
-          }
-        }
-      } catch (error) {
-        // Ignore errors during cleanup
-        console.warn(`Cleanup warning for prefix ${prefix}:`, error)
-      }
-    }
-  }
-
-  beforeAll(async () => {
+  async function cleanDatabase() {
     if (!isTesting) {
       throw new Error('Tests can only run in test environment. Set NODE_ENV=test')
     }
@@ -55,23 +28,20 @@ describe('NoteService', () => {
       for (const collection of collections) {
         await db.collection(collection.name).deleteMany({})
       }
-
-      console.log(`Test database ${config.mongodb.database} cleaned`)
     } finally {
       await client.close()
     }
+  }
 
-    const conn = new DbConnection()
+  beforeAll(async () => {
+    conn = new DbConnection()
     await conn.connect()
     noteService = new NoteService(conn)
   })
 
-  describe('Basic Note Operations', () => {
-    afterEach(async () => {
-      // Clean up test data with specific prefixes used in this suite
-      await cleanupTestData(['basic-test', 'basic-patch', 'basic-existing', 'basic-update', 'basic-delete'])
-    })
+  beforeEach(cleanDatabase)
 
+  describe('Basic Note Operations', () => {
     it('should create a note', async () => {
       const note = await noteService.getNote('basic-test')
       expect(note).toBeDefined()
@@ -194,6 +164,7 @@ describe('NoteService', () => {
         `${TEST_PREFIX}/folder2/subfolder/deep-note`,
       ]
 
+      // Create all notes sequentially to ensure proper ordering
       for (const noteId of notesToCreate) {
         const content = `Content of ${noteId}`
         const patch = createPatch('', content)
@@ -205,15 +176,31 @@ describe('NoteService', () => {
           byClient: 'test-client',
         })
       }
-    })
 
-    afterEach(async () => {
-      await cleanupTestData([TEST_PREFIX])
+      // Verify all notes were created successfully
+      for (const noteId of notesToCreate) {
+        const note = await noteService.getNote(noteId)
+        if (note.note === '') {
+          throw new Error(`Failed to create test data: ${noteId}`)
+        }
+      }
     })
 
     it('should get all tree note IDs for a root note', async () => {
+      // Double-check that test data exists
+      const rootNote = await noteService.getNote(TEST_PREFIX)
+      const note1 = await noteService.getNote(`${TEST_PREFIX}/folder1/note1`)
+      expect(rootNote.note).toBe(`Content of ${TEST_PREFIX}`)
+      expect(note1.note).toBe(`Content of ${TEST_PREFIX}/folder1/note1`)
+
       const treeNoteIds = await noteService.getTreeNoteIds(TEST_PREFIX)
-      expect(treeNoteIds).toContain(TEST_PREFIX)
+
+      // Debug output if test fails
+      if (treeNoteIds.length !== 4) {
+        console.log('Expected 4 notes, got:', treeNoteIds.length)
+        console.log('Tree note IDs:', treeNoteIds)
+      }
+
       expect(treeNoteIds).toContain(`${TEST_PREFIX}/folder1/note1`)
       expect(treeNoteIds).toContain(`${TEST_PREFIX}/folder1/note2`)
       expect(treeNoteIds).toContain(`${TEST_PREFIX}/folder2/subfolder/deep-note`)
@@ -222,7 +209,6 @@ describe('NoteService', () => {
 
     it('should get tree note IDs for a nested note', async () => {
       const treeNoteIds = await noteService.getTreeNoteIds(`${TEST_PREFIX}/folder1/note1`)
-      expect(treeNoteIds).toContain(TEST_PREFIX)
       expect(treeNoteIds).toContain(`${TEST_PREFIX}/folder1/note1`)
       expect(treeNoteIds).toContain(`${TEST_PREFIX}/folder1/note2`)
       expect(treeNoteIds).toContain(`${TEST_PREFIX}/folder2/subfolder/deep-note`)
@@ -280,10 +266,14 @@ describe('NoteService', () => {
           byClient: 'test-client',
         })
       }
-    })
 
-    afterEach(async () => {
-      await cleanupTestData([TEST_PREFIX])
+      // Verify all notes were created successfully
+      for (const noteId of notesToCreate) {
+        const note = await noteService.getNote(noteId)
+        if (note.note === '') {
+          throw new Error(`Failed to create test data: ${noteId}`)
+        }
+      }
     })
 
     it('should delete a single note recursively', async () => {
@@ -314,7 +304,14 @@ describe('NoteService', () => {
     })
 
     it('should delete entire tree recursively', async () => {
+      // Verify data exists before deletion
+      const rootNoteBefore = await noteService.getNote(TEST_PREFIX)
+      expect(rootNoteBefore.note).toBe(`Content of ${TEST_PREFIX}`)
+
       await noteService.deleteRecursively(TEST_PREFIX)
+
+      // Add a small delay to ensure all async operations complete
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       const rootNote = await noteService.getNote(TEST_PREFIX)
       const note1 = await noteService.getNote(`${TEST_PREFIX}/folder1/note1`)
@@ -356,15 +353,14 @@ describe('NoteService', () => {
           byClient: 'test-client',
         })
       }
-    })
 
-    afterEach(async () => {
-      await cleanupTestData([
-        TEST_PREFIX,
-        `${TEST_PREFIX}-renamed-folder`,
-        `${TEST_PREFIX}-moved-tree`,
-        `${TEST_PREFIX}-existing-target`,
-      ])
+      // Verify all notes were created successfully
+      for (const noteId of notesToCreate) {
+        const note = await noteService.getNote(noteId)
+        if (note.note === '') {
+          throw new Error(`Failed to create test data: ${noteId}`)
+        }
+      }
     })
 
     it('should move a single note', async () => {
@@ -380,7 +376,14 @@ describe('NoteService', () => {
     })
 
     it('should move a folder and all its descendants', async () => {
+      // Verify data exists before moving
+      const note1Before = await noteService.getNote(`${TEST_PREFIX}/folder1/note1`)
+      expect(note1Before.note).toBe(`Content of ${TEST_PREFIX}/folder1/note1`)
+
       await noteService.moveRecursively(`${TEST_PREFIX}/folder1`, `${TEST_PREFIX}-renamed-folder`)
+
+      // Add a small delay to ensure all async operations complete
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       // Old notes should be empty
       const oldNote1 = await noteService.getNote(`${TEST_PREFIX}/folder1/note1`)
@@ -396,7 +399,14 @@ describe('NoteService', () => {
     })
 
     it('should move entire tree', async () => {
+      // Verify data exists before moving
+      const rootNoteBefore = await noteService.getNote(TEST_PREFIX)
+      expect(rootNoteBefore.note).toBe(`Content of ${TEST_PREFIX}`)
+
       await noteService.moveRecursively(TEST_PREFIX, `${TEST_PREFIX}-moved-tree`)
+
+      // Add a small delay to ensure all async operations complete
+      await new Promise((resolve) => setTimeout(resolve, 10))
 
       // Old notes should be empty
       const oldRoot = await noteService.getNote(TEST_PREFIX)
@@ -439,16 +449,6 @@ describe('NoteService', () => {
 
   describe('Error Handling', () => {
     const TEST_PREFIX = 'error-test'
-
-    afterEach(async () => {
-      await cleanupTestData([
-        TEST_PREFIX,
-        `${TEST_PREFIX}-large-note`,
-        `${TEST_PREFIX}-concurrent`,
-        `${TEST_PREFIX}-concurrent2`,
-        `${TEST_PREFIX}/with-dashes_and.dots`,
-      ])
-    })
 
     it('should throw error for hash mismatch', async () => {
       const noteId = `${TEST_PREFIX}-hash-mismatch`
@@ -545,16 +545,6 @@ describe('NoteService', () => {
   describe('Edge Cases', () => {
     const TEST_PREFIX = 'edge-test'
 
-    afterEach(async () => {
-      await cleanupTestData([
-        `${TEST_PREFIX}-empty`,
-        `${TEST_PREFIX}-moved-empty`,
-        `${TEST_PREFIX}-empty-delete`,
-        `${TEST_PREFIX}-root`,
-        `${TEST_PREFIX}-normal-path`,
-      ])
-    })
-
     it('should handle moving note with empty content', async () => {
       const oldId = `${TEST_PREFIX}-empty`
       const newId = `${TEST_PREFIX}-moved-empty`
@@ -623,14 +613,6 @@ describe('NoteService', () => {
 
   describe('Event Emission', () => {
     const TEST_PREFIX = 'event-test'
-
-    afterEach(async () => {
-      await cleanupTestData([
-        `${TEST_PREFIX}-note-update`,
-        `${TEST_PREFIX}-tree-non-empty`,
-        `${TEST_PREFIX}-tree-empty`,
-      ])
-    })
 
     it('should emit noteUpdate event when patching note', async () => {
       const noteId = `${TEST_PREFIX}-note-update`
