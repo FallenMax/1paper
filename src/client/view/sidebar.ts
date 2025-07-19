@@ -130,11 +130,14 @@ export class Sidebar extends Disposable implements ViewController {
       label: 'Actions',
       initialValue: '',
       options: [
-        { label: 'Delete', value: 'delete' },
+        { label: 'Add child', value: 'addChild' },
         { label: 'Move', value: 'move' },
+        { label: 'Delete', value: 'delete' },
       ],
       onChange: async (action) => {
-        if (action === 'delete') {
+        if (action === 'addChild') {
+          await this.handleAddChild(noteId)
+        } else if (action === 'delete') {
           await this.handleDelete(noteId)
         } else if (action === 'move') {
           await this.handleMove(noteId)
@@ -154,6 +157,24 @@ export class Sidebar extends Disposable implements ViewController {
       },
       [h('div', { className: 'tree-item-content' }, [linkElement.dom, menuWrapper])],
     )
+  }
+
+  private async handleAddChild(parentNoteId: string): Promise<void> {
+    try {
+      // Prompt user for child note name
+      const childName = prompt(`Enter child note name for "${parentNoteId}":`)
+      if (!childName || !childName.trim()) {
+        return
+      }
+
+      // Construct full child note path
+      const childNoteId = `${parentNoteId}/${childName.trim()}`
+
+      // Navigate to the new child note (will automatically create empty note)
+      await Router.shared.navigateTo(childNoteId)
+    } catch (error) {
+      showError(error)
+    }
   }
 
   private async handleDelete(noteId: string): Promise<void> {
