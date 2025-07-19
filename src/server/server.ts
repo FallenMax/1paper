@@ -41,7 +41,12 @@ export class Server extends Disposable {
     app.use(error())
     app.use(logger())
     app.use(compress())
-    app.use(bodyParser())
+    app.use(
+      bodyParser({
+        enableTypes: ['json', 'form', 'text'],
+        textLimit: '50mb', // Allow large text content
+      }),
+    )
     app.use(
       // TODO should we?
       cors({
@@ -118,6 +123,7 @@ export class Server extends Disposable {
     // listen
     const port = config.port
     await new Promise<void>((resolve) => {
+      this.logger.info(`Listening on port ${port}`)
       this.httpServer.listen(port, resolve)
       this.register(() => this.httpServer.close())
     })

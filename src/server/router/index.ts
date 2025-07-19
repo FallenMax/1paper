@@ -61,6 +61,73 @@ export const routes = (noteService: NoteService) => {
 
   router
 
+    //-------------- REST API Routes --------------
+    .get('/api/note/:id', async (ctx) => {
+      const noteId = decodeURIComponent(ctx.params.id)
+      const { note } = await noteService.getNote(noteId)
+      const content = note
+
+      // Check if client wants JSON response
+      const acceptJson = ctx.get('Accept')?.includes('application/json')
+
+      if (acceptJson) {
+        try {
+          const parsedContent = JSON.parse(content)
+          ctx.body = parsedContent
+          ctx.type = 'application/json'
+          ctx.status = 200
+        } catch (error) {
+          ctx.body = content
+          ctx.type = 'text/plain; charset=utf-8'
+          ctx.status = 406
+        }
+      } else {
+        ctx.body = content
+        ctx.type = 'text/plain; charset=utf-8'
+        ctx.status = 200
+      }
+    })
+
+    .get('/api/tree/:id', async (ctx) => {
+      const noteId = decodeURIComponent(ctx.params.id)
+      const tree = await noteService.getTreeNoteIds(noteId)
+      ctx.body = tree
+      ctx.status = 200
+    })
+
+    .put('/api/note/:id', async (ctx) => {
+      const noteId = decodeURIComponent(ctx.params.id)
+
+      // Get content based on Content-Type
+      let content = ''
+      const contentType = ctx.get('Content-Type') || ''
+
+      if (contentType.includes('application/json')) {
+        // Handle JSON input
+        const body = ctx.request.body
+        if (typeof body === 'object' && body !== null) {
+          content = JSON.stringify(body)
+        } else if (typeof body === 'string') {
+          content = body
+        }
+      } else {
+        // Handle plain text input (existing logic)
+        if (ctx.request.body && typeof ctx.request.body === 'string') {
+          content = ctx.request.body
+        } else if (ctx.request.rawBody) {
+          content = ctx.request.rawBody.toString()
+        }
+      }
+
+      await noteService.setNote({
+        id: noteId,
+        text: content,
+        byClient: undefined, // REST API requests are not associated with a specific client
+      })
+
+      ctx.status = 200
+    })
+
     // manifest
     .get('/assets/manifest.webmanifest', async (ctx) => {
       const noteUrl = ctx.headers.referer
