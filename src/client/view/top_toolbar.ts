@@ -4,6 +4,7 @@ import { IconButton } from '../ui/icon_button'
 import { h } from '../util/dom'
 import { Router } from '../util/router'
 import { ViewController } from '../util/view_controller'
+import { LayoutToggle } from './layout_toggle'
 import { SidebarToggle } from './sidebar_toggle'
 import { ThemePicker } from './theme_picker'
 import './top_toolbar.css'
@@ -15,12 +16,14 @@ export class TopToolbar extends Disposable implements ViewController {
   private themePicker: ThemePicker
   private viewModePicker: ViewModePicker
   private sidebarToggle: SidebarToggle
+  private layoutToggle: LayoutToggle
   constructor(id: string) {
     super()
     this.id = id
     this.themePicker = new ThemePicker()
     this.viewModePicker = new ViewModePicker()
     this.sidebarToggle = new SidebarToggle()
+    this.layoutToggle = new LayoutToggle()
 
     this.dom = h('div', { className: 'top-toolbar' }, [
       // Sidebar toggle
@@ -31,6 +34,8 @@ export class TopToolbar extends Disposable implements ViewController {
       this.viewModePicker.dom,
       // Spacer
       h('div'),
+      // Layout toggle (desktop only)
+      h('div', { className: 'layout-toggle-wrapper' }, [this.layoutToggle.dom]),
       // Add note
       new IconButton({
         icon: icons.addOutline,
@@ -51,6 +56,7 @@ export class TopToolbar extends Disposable implements ViewController {
     this.themePicker.init()
     this.viewModePicker.init()
     this.sidebarToggle.init()
+    this.layoutToggle.init()
   }
 
   async setId(newId: string): Promise<void> {

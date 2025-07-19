@@ -7,15 +7,19 @@ export type Theme = 'light' | 'dark' | 'system'
 
 export type ViewMode = 'text' | 'markdown' | 'html'
 
+export type LayoutWidth = 'normal' | 'wide'
+
 export const uiStorage = new Storage<{
   theme: 'light' | 'dark' | 'system'
   treeVisible: boolean
+  layoutWidth: LayoutWidth
 }>('ui')
 
 export class UiStore extends EventEmitter<{
   themeChanged: Theme
   viewModeChanged: ViewMode
   treeVisibilityChanged: boolean
+  layoutWidthChanged: LayoutWidth
 }> {
   static shared = new UiStore()
   get viewMode(): ViewMode {
@@ -32,6 +36,8 @@ export class UiStore extends EventEmitter<{
           this.emit('themeChanged', e.newValue as Theme)
         } else if (e.key === uiStorage.prefixed('treeVisible')) {
           this.emit('treeVisibilityChanged', uiStorage.get('treeVisible') ?? true)
+        } else if (e.key === uiStorage.prefixed('layoutWidth')) {
+          this.emit('layoutWidthChanged', uiStorage.get('layoutWidth') ?? 'normal')
         }
       }),
     )
@@ -74,5 +80,13 @@ export class UiStore extends EventEmitter<{
   setTreeVisible(visible: boolean) {
     uiStorage.set('treeVisible', visible)
     this.emit('treeVisibilityChanged', visible)
+  }
+  //-------------- Layout Width --------------
+  getLayoutWidth(): LayoutWidth {
+    return uiStorage.get('layoutWidth') ?? 'normal'
+  }
+  setLayoutWidth(width: LayoutWidth) {
+    uiStorage.set('layoutWidth', width)
+    this.emit('layoutWidthChanged', width)
   }
 }

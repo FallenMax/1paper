@@ -105,7 +105,9 @@ class App extends Disposable implements ViewController {
 
     this.register(UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this)))
     this.register(UiStore.shared.on('treeVisibilityChanged', this.applyTreeVisibility.bind(this)))
+    this.register(UiStore.shared.on('layoutWidthChanged', this.applyLayoutWidth.bind(this)))
     this.applyViewMode()
+    this.applyLayoutWidth()
     this.applySaveStatus()
 
     document.title = `${id} - 1paper`
@@ -205,7 +207,9 @@ class App extends Disposable implements ViewController {
     this.$main.classList.toggle('is-sidebar-open', UiStore.shared.isTreeVisible())
 
     const winWidth = window.innerWidth
-    const pageWidth = Math.min(winWidth, 800)
+    const layoutWidth = UiStore.shared.getLayoutWidth()
+    const maxPageWidth = layoutWidth === 'wide' ? 1400 : 800
+    const pageWidth = Math.min(winWidth, maxPageWidth)
     const sidebarWidth = 200
     const origLeft = (winWidth - pageWidth) / 2
     const left1 = (winWidth - pageWidth - sidebarWidth) / 2
@@ -213,6 +217,14 @@ class App extends Disposable implements ViewController {
     const left = Math.max(left1, left2, origLeft)
     const offset = left - origLeft
     this.$main.style.setProperty('--main-offset', `${offset}px`)
+  }
+
+  private applyLayoutWidth() {
+    const layoutWidth = UiStore.shared.getLayoutWidth()
+    const cssVarValue = layoutWidth === 'wide' ? 'var(--app-width-wide)' : 'var(--app-width-normal)'
+    document.documentElement.style.setProperty('--app-width', cssVarValue)
+    // Recalculate sidebar offset when layout width changes
+    this.applyTreeVisibility()
   }
 }
 

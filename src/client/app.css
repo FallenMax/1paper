@@ -17,6 +17,9 @@ body {
 }
 :root {
   --icon-size: 16px;
+  --app-width-normal: 800px;
+  --app-width-wide: 1400px;
+  --app-width: var(--app-width-normal);
   font-size: 14px;
   @media (max-width: 768px) {
     --icon-size: 20px;
@@ -66,7 +69,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 800px;
+  width: var(--app-width);
   gap: 2px;
   max-width: calc(100vw - 16px);
   height: 90vh;

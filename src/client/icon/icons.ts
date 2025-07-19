@@ -11,6 +11,7 @@ import folder from './folder.svg?raw'
 import listOutline from './list-outline.svg?raw'
 import menuOutline from './menu-outline.svg?raw'
 import moonOutline from './moon-outline.svg?raw'
+import resizeOutline from './resize-outline.svg?raw'
 import sunOutline from './sunny-outline.svg?raw'
 
 export const icons = {
@@ -28,4 +29,5 @@ export const icons = {
   eye,
   eyeOutline,
   ellipsisHorizontal,
+  resizeOutline,
 }
