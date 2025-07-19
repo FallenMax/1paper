@@ -36,6 +36,25 @@ export class NoteService extends EventEmitter<{
     return this.queueTask(() => this.doPatchNote(options))
   }
 
+  async setNote(options: { id: string; text: string; byClient: string | undefined }): Promise<void> {
+    return this.queueTask(() => this.doSetNote(options))
+  }
+
+  private async doSetNote(options: { id: string; text: string; byClient: string | undefined }): Promise<void> {
+    const { id, text, byClient } = options
+    const existingNote = await this.doGetNote(id)
+
+    // Skip if content is the same
+    if (existingNote.note === text) {
+      return
+    }
+
+    const patch = createPatch(existingNote.note, text)
+    const hash = hashString(text)
+
+    await this.doPatchNote({ id, patch, hash, byClient })
+  }
+
   async getDescendantNoteIds(id: string): Promise<string[]> {
     return this.queueTask(() => this.doGetDescendantNoteIds(id))
   }
@@ -54,11 +73,9 @@ export class NoteService extends EventEmitter<{
       const notesToDelete = existingNotes.filter(({ note }) => note.note.length > 0)
 
       // Delete all notes by setting them to empty
-      for (const { id: noteId, note } of notesToDelete) {
-        const patch = createPatch(note.note, '')
-        const hash = hashString('')
+      for (const { id: noteId } of notesToDelete) {
         try {
-          await this.doPatchNote({ id: noteId, patch, hash, byClient: undefined })
+          await this.doSetNote({ id: noteId, text: '', byClient: undefined })
         } catch (error) {
           console.error(error)
         }
@@ -112,16 +129,12 @@ export class NoteService extends EventEmitter<{
 
       // First, create all new notes
       for (const { newId: targetId, content } of moveOperations) {
-        const patch = createPatch('', content)
-        const hash = hashString(content)
-        await this.doPatchNote({ id: targetId, patch, hash, byClient: undefined })
+        await this.doSetNote({ id: targetId, text: content, byClient: undefined })
       }
 
       // Then, delete all old notes
-      for (const { oldId: sourceId, content } of moveOperations) {
-        const patch = createPatch(content, '')
-        const hash = hashString('')
-        await this.doPatchNote({ id: sourceId, patch, hash: hash, byClient: undefined })
+      for (const { oldId: sourceId } of moveOperations) {
+        await this.doSetNote({ id: sourceId, text: '', byClient: undefined })
       }
     })
   }

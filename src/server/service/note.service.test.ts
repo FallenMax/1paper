@@ -52,13 +52,10 @@ describe('NoteService', () => {
     it('should patch a note with content', async () => {
       const noteId = 'basic-patch'
       const content = 'Hello world'
-      const patch = createPatch('', content)
-      const hash = hashString(content)
 
-      await noteService.patchNote({
+      await noteService.setNote({
         id: noteId,
-        patch,
-        hash,
+        text: content,
         byClient: 'test-client',
       })
 
@@ -69,14 +66,11 @@ describe('NoteService', () => {
     it('should get an existing note', async () => {
       const noteId = 'basic-existing'
       const content = 'Existing note content'
-      const patch = createPatch('', content)
-      const hash = hashString(content)
 
       // Create note first
-      await noteService.patchNote({
+      await noteService.setNote({
         id: noteId,
-        patch,
-        hash,
+        text: content,
         byClient: 'test-client',
       })
 
@@ -92,18 +86,15 @@ describe('NoteService', () => {
       const updatedContent = 'Updated content'
 
       // Create initial note
-      let patch = createPatch('', initialContent)
-      let hash = hashString(initialContent)
-      await noteService.patchNote({
+      await noteService.setNote({
         id: noteId,
-        patch,
-        hash,
+        text: initialContent,
         byClient: 'test-client',
       })
 
       // Update the note
-      patch = createPatch(initialContent, updatedContent)
-      hash = hashString(updatedContent)
+      const patch = createPatch(initialContent, updatedContent)
+      const hash = hashString(updatedContent)
       await noteService.patchNote({
         id: noteId,
         patch,
@@ -120,22 +111,16 @@ describe('NoteService', () => {
       const content = 'Content to delete'
 
       // Create note first
-      let patch = createPatch('', content)
-      let hash = hashString(content)
-      await noteService.patchNote({
+      await noteService.setNote({
         id: noteId,
-        patch,
-        hash,
+        text: content,
         byClient: 'test-client',
       })
 
       // Delete by setting empty content
-      patch = createPatch(content, '')
-      hash = hashString('')
-      await noteService.patchNote({
+      await noteService.setNote({
         id: noteId,
-        patch,
-        hash,
+        text: '',
         byClient: 'test-client',
       })
 
@@ -167,12 +152,9 @@ describe('NoteService', () => {
       // Create all notes sequentially to ensure proper ordering
       for (const noteId of notesToCreate) {
         const content = `Content of ${noteId}`
-        const patch = createPatch('', content)
-        const hash = hashString(content)
-        await noteService.patchNote({
+        await noteService.setNote({
           id: noteId,
-          patch,
-          hash,
+          text: content,
           byClient: 'test-client',
         })
       }
@@ -257,12 +239,9 @@ describe('NoteService', () => {
 
       for (const noteId of notesToCreate) {
         const content = `Content of ${noteId}`
-        const patch = createPatch('', content)
-        const hash = hashString(content)
-        await noteService.patchNote({
+        await noteService.setNote({
           id: noteId,
-          patch,
-          hash,
+          text: content,
           byClient: 'test-client',
         })
       }
@@ -344,12 +323,9 @@ describe('NoteService', () => {
 
       for (const noteId of notesToCreate) {
         const content = `Content of ${noteId}`
-        const patch = createPatch('', content)
-        const hash = hashString(content)
-        await noteService.patchNote({
+        await noteService.setNote({
           id: noteId,
-          patch,
-          hash,
+          text: content,
           byClient: 'test-client',
         })
       }
@@ -432,12 +408,9 @@ describe('NoteService', () => {
     it('should prevent moving to existing target', async () => {
       // Create target note first
       const content = 'Existing target content'
-      const patch = createPatch('', content)
-      const hash = hashString(content)
-      await noteService.patchNote({
+      await noteService.setNote({
         id: `${TEST_PREFIX}-existing-target`,
-        patch,
-        hash,
+        text: content,
         byClient: 'test-client',
       })
 
@@ -469,14 +442,11 @@ describe('NoteService', () => {
     it('should throw error for note exceeding max size', async () => {
       const noteId = `${TEST_PREFIX}-large-note`
       const largeContent = 'a'.repeat(100001) // Exceeds NOTE_MAX_SIZE (100000)
-      const patch = createPatch('', largeContent)
-      const hash = hashString(largeContent)
 
       await expect(
-        noteService.patchNote({
+        noteService.setNote({
           id: noteId,
-          patch,
-          hash,
+          text: largeContent,
           byClient: 'test-client',
         }),
       ).rejects.toThrow(UserError)
@@ -487,24 +457,16 @@ describe('NoteService', () => {
       const content1 = 'First content'
       const content2 = 'Second content'
 
-      const patch1 = createPatch('', content1)
-      const hash1 = hashString(content1)
-
-      const patch2 = createPatch('', content2)
-      const hash2 = hashString(content2)
-
       // Both operations should succeed because they're queued
       const promises = [
-        noteService.patchNote({
+        noteService.setNote({
           id: noteId,
-          patch: patch1,
-          hash: hash1,
+          text: content1,
           byClient: 'client1',
         }),
-        noteService.patchNote({
+        noteService.setNote({
           id: noteId + '2',
-          patch: patch2,
-          hash: hash2,
+          text: content2,
           byClient: 'client2',
         }),
       ]
@@ -527,13 +489,10 @@ describe('NoteService', () => {
     it('should handle note ID with special characters', async () => {
       const noteId = `${TEST_PREFIX}/with-dashes_and.dots`
       const content = 'Content with special characters'
-      const patch = createPatch('', content)
-      const hash = hashString(content)
 
-      await noteService.patchNote({
+      await noteService.setNote({
         id: noteId,
-        patch,
-        hash,
+        text: content,
         byClient: 'test-client',
       })
 
@@ -570,13 +529,10 @@ describe('NoteService', () => {
     it('should handle very deep nesting', async () => {
       const deepPath = `${TEST_PREFIX}-root/a/b/c/d/e/f/g/h/i/j/k/l/m/n/o/p/q/r/s/t/u/v/w/x/y/z`
       const content = 'Deep nested content'
-      const patch = createPatch('', content)
-      const hash = hashString(content)
 
-      await noteService.patchNote({
+      await noteService.setNote({
         id: deepPath,
-        patch,
-        hash,
+        text: content,
         byClient: 'test-client',
       })
 
@@ -590,13 +546,10 @@ describe('NoteService', () => {
     it('should handle note IDs with leading/trailing slashes', async () => {
       const noteId = `${TEST_PREFIX}-normal-path`
       const content = 'Normal content'
-      const patch = createPatch('', content)
-      const hash = hashString(content)
 
-      await noteService.patchNote({
+      await noteService.setNote({
         id: noteId,
-        patch,
-        hash,
+        text: content,
         byClient: 'test-client',
       })
 
@@ -617,13 +570,12 @@ describe('NoteService', () => {
     it('should emit noteUpdate event when patching note', async () => {
       const noteId = `${TEST_PREFIX}-note-update`
       const content = 'Event test content'
-      const patch = createPatch('', content)
-      const hash = hashString(content)
+      const expectedHash = hashString(content)
 
       let eventEmitted = false
       const handler = (data: any) => {
         expect(data.id).toBe(noteId)
-        expect(data.h).toBe(hash)
+        expect(data.h).toBe(expectedHash)
         expect(data.byClient).toBe('test-client')
         eventEmitted = true
       }
@@ -631,10 +583,9 @@ describe('NoteService', () => {
       const unsubscribe = noteService.on('noteUpdate', handler)
 
       try {
-        await noteService.patchNote({
+        await noteService.setNote({
           id: noteId,
-          patch,
-          hash,
+          text: content,
           byClient: 'test-client',
         })
 
@@ -647,8 +598,6 @@ describe('NoteService', () => {
     it('should emit treeUpdate event when note becomes non-empty', async () => {
       const noteId = `${TEST_PREFIX}-tree-non-empty`
       const content = 'Tree event test content'
-      const patch = createPatch('', content)
-      const hash = hashString(content)
 
       let treeEventEmitted = false
       const handler = (data: any) => {
@@ -659,10 +608,9 @@ describe('NoteService', () => {
       const unsubscribe = noteService.on('treeUpdate', handler)
 
       try {
-        await noteService.patchNote({
+        await noteService.setNote({
           id: noteId,
-          patch,
-          hash,
+          text: content,
           byClient: 'test-client',
         })
 
@@ -677,12 +625,9 @@ describe('NoteService', () => {
       const content = 'Content to be emptied'
 
       // Create note first
-      let patch = createPatch('', content)
-      let hash = hashString(content)
-      await noteService.patchNote({
+      await noteService.setNote({
         id: noteId,
-        patch,
-        hash,
+        text: content,
         byClient: 'test-client',
       })
 
@@ -696,12 +641,9 @@ describe('NoteService', () => {
 
       try {
         // Empty the note
-        patch = createPatch(content, '')
-        hash = hashString('')
-        await noteService.patchNote({
+        await noteService.setNote({
           id: noteId,
-          patch,
-          hash,
+          text: '',
           byClient: 'test-client',
         })
 
