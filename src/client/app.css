@@ -28,6 +28,7 @@ body {
 }
 
 html[data-theme='light'] {
+  color-scheme: light;
   --page-bg: rgb(237, 238, 240) url('./assets/bg.png') left top repeat;
   --text: #333;
   --text-disabled: #84878c;
@@ -38,6 +39,7 @@ html[data-theme='light'] {
   --bg-active: rgb(0 0 0 / 20%);
 }
 html[data-theme='dark'] {
+  color-scheme: dark;
   --page-bg: rgb(34 34 34);
   --text: rgb(255 255 255 / 75%);
   --text-disabled: rgb(255 255 255 / 35%);

@@ -33,5 +33,9 @@
     &:hover {
       color: var(--text);
     }
+    option {
+      background-color: var(--bg);
+      color: var(--text);
+    }
   }
 }
