@@ -17,37 +17,51 @@ body {
 }
 :root {
   --icon-size: 16px;
-  --app-width-normal: 800px;
-  --app-width-wide: 1400px;
-  --app-width: var(--app-width-normal);
+  --sidebar-width: 220px;
+  --editor-max-width-normal: 760px;
+  --editor-max-width-wide: 1200px;
+  --editor-max-width: var(--editor-max-width-normal);
+  --header-height: 48px;
+  --sheet-radius: 4px;
   font-size: 14px;
   @media (max-width: 768px) {
     --icon-size: 20px;
     font-size: 16px;
+    --sidebar-width: 260px;
   }
 }
 
 html[data-theme='light'] {
   color-scheme: light;
+  /* "Desk surface": cool gray + paper-noise texture */
   --page-bg: rgb(237, 238, 240) url('./assets/bg.png') left top repeat;
   --text: #333;
-  --text-disabled: #84878c;
+  --text-disabled: #a0a3a8;
   --text-secondary: #84878c;
-  --bg: #fff;
-  --border: #ddd;
-  --bg-hover: rgb(0 0 0 / 10%);
-  --bg-active: rgb(0 0 0 / 20%);
+  /* "Sheet": white paper on the desk. Border carries the edge; shadow is just a subtle baseline press. */
+  --sheet-bg: #fff;
+  --sheet-border: rgb(0 0 0 / 14%);
+  --sheet-shadow: 0 1px 2px rgb(0 0 0 / 4%);
+  --border: rgb(0 0 0 / 10%);
+  --border-strong: rgb(0 0 0 / 18%);
+  --bg-hover: rgb(0 0 0 / 6%);
+  --bg-active: rgb(0 0 0 / 12%);
 }
 html[data-theme='dark'] {
   color-scheme: dark;
-  --page-bg: rgb(34 34 34);
-  --text: rgb(255 255 255 / 75%);
+  /* "Workspace at night": darker than the sheet so the page recedes */
+  --page-bg: rgb(26 26 26);
+  --text: rgb(255 255 255 / 82%);
   --text-disabled: rgb(255 255 255 / 35%);
   --text-secondary: rgb(255 255 255 / 50%);
-  --bg: rgb(41 41 41);
-  --border: rgb(56 56 56);
-  --bg-hover: rgb(255 255 255 / 10%);
-  --bg-active: rgb(255 255 255 / 20%);
+  /* Sheet: slightly lifted from the page; the lighter bg does most of the work, border + baseline shadow finish the edge */
+  --sheet-bg: rgb(40 40 40);
+  --sheet-border: rgb(255 255 255 / 10%);
+  --sheet-shadow: 0 1px 0 rgb(0 0 0 / 30%);
+  --border: rgb(255 255 255 / 8%);
+  --border-strong: rgb(255 255 255 / 16%);
+  --bg-hover: rgb(255 255 255 / 7%);
+  --bg-active: rgb(255 255 255 / 14%);
 }
 
 *,
@@ -57,42 +71,40 @@ html[data-theme='dark'] {
   outline: none;
 }
 
+::selection {
+  background: rgb(0 0 0 / 12%);
+  color: var(--text);
+}
+html[data-theme='dark'] ::selection {
+  background: rgb(255 255 255 / 16%);
+  color: var(--text);
+}
+
 body {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  /* padding: env(safe-area-inset-top, 20px) env(safe-area-inset-right, 20px)
-    env(safe-area-inset-bottom, 20px) env(safe-area-inset-left, 20px); */
 }
 
 #app {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  width: var(--app-width);
-  gap: 2px;
-  max-width: calc(100vw - 16px);
-  height: 90vh;
-  max-height: 90vh;
-  @media (max-width: 768px) {
-    height: 100%;
-    max-height: 100%;
-  }
-  header {
+  width: 100%;
+  height: 100vh;
+  height: 100svh;
+
+  > header {
     display: flex;
-    align-self: stretch;
     align-items: center;
-    font-size: 1rem;
-    margin-top: 4px;
-    margin-bottom: 2px;
+    height: var(--header-height);
+    padding: 0 12px;
+    gap: 10px;
+    flex-shrink: 0;
     .save-status {
-      margin-left: 24px;
       color: var(--text-secondary);
       opacity: 0;
       transition: opacity 0.5s 0.5s;
-      font-size: 0.9rem;
+      font-size: 0.82rem;
+      flex-shrink: 0;
       &.is-saving {
         opacity: 0.7;
         transition: opacity 0s;
@@ -101,70 +113,101 @@ body {
         color: orangered;
       }
     }
-    .spacer {
-      flex-grow: 1;
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-shrink: 0;
+      padding-left: 4px;
     }
-  }
-  main {
-    display: flex;
-    align-self: stretch;
-    flex-grow: 1;
-    flex-shrink: 1;
-    min-height: 0;
-
-    position: relative;
-    transition: left 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
-    left: 0;
-    &.is-sidebar-open {
-      left: var(--main-offset);
-    }
-    &::before,
-    &::after,
-    > *:not(aside) {
-      background-color: var(--bg);
-      border-radius: 4px;
-      border: 1px solid var(--border);
-      flex-grow: 1;
-      flex-shrink: 1;
-      min-height: 0;
-    }
-    &::before {
-      content: '';
-      display: block;
-      inset: 4px 4px -4px 4px;
-      position: absolute;
-      z-index: 1;
-    }
-    &::after {
-      content: '';
-      display: block;
-      inset: 2px 2px -2px 2px;
-      position: absolute;
-      z-index: 2;
-    }
-    > * {
-      z-index: 3;
-    }
-  }
-  footer {
-    display: none;
-    align-self: stretch;
-    /* height: calc(18px + env(safe-area-inset-bottom, 0px)); */
-    align-items: center;
-    justify-content: center;
-    padding: 8px 0;
-    a {
-      @media (max-width: 768px) {
+    @media (max-width: 768px) {
+      padding: 0 8px;
+      gap: 6px;
+      .header-actions {
+        gap: 6px;
+        padding-left: 0;
+      }
+      .layout-toggle {
         display: none;
       }
-      color: var(--text-secondary);
-      text-decoration: none;
-      font-size: 1rem;
-      text-align: center;
-      /* margin-top: 12px; */
-      opacity: 0.7;
-      &:hover {
+    }
+  }
+
+  > main {
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    min-height: 0;
+    overflow: hidden;
+
+    > aside {
+      width: var(--sidebar-width);
+      flex-shrink: 0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      transition: margin-left 0.25s ease, opacity 0.2s ease;
+    }
+    &:not(.is-sidebar-open) > aside {
+      margin-left: calc(var(--sidebar-width) * -1);
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    > .editor-pane {
+      flex: 1;
+      min-width: 0;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 16px clamp(8px, 3vw, 40px) 0;
+      @media (max-width: 768px) {
+        padding: 8px 8px 0;
+      }
+    }
+    /* The "sheet": white paper resting on the desk */
+    > .editor-pane > * {
+      width: 100%;
+      max-width: var(--editor-max-width);
+      flex: 1;
+      min-height: 0;
+      background: var(--sheet-bg);
+      border: 1px solid var(--sheet-border);
+      border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+      box-shadow: var(--sheet-shadow);
+    }
+  }
+
+  .sidebar-backdrop {
+    display: none;
+  }
+
+  @media (max-width: 768px) {
+    > main {
+      position: relative;
+      > aside {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        z-index: 20;
+        background: var(--page-bg);
+        box-shadow: 1px 0 0 var(--border), 4px 0 16px rgb(0 0 0 / 12%);
+      }
+      .sidebar-backdrop {
+        display: block;
+        position: absolute;
+        inset: 0;
+        background: rgb(0 0 0 / 30%);
+        z-index: 10;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+      &.is-sidebar-open .sidebar-backdrop {
         opacity: 1;
+        pointer-events: auto;
       }
     }
   }

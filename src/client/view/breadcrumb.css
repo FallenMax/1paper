@@ -1,0 +1,51 @@
+.breadcrumb {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.breadcrumb-link,
+.breadcrumb-sep,
+.breadcrumb-current {
+  display: inline-block;
+  padding: 2px 4px;
+  border-radius: 3px;
+  transition: color 0.15s, background-color 0.15s;
+}
+
+.breadcrumb-link {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.breadcrumb-link:hover {
+  color: var(--text);
+  background: var(--bg-hover);
+}
+
+.breadcrumb-sep {
+  color: var(--text-secondary);
+  opacity: 0.5;
+  padding: 2px 2px;
+  pointer-events: none;
+  user-select: none;
+}
+
+.breadcrumb-current {
+  color: var(--text);
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 768px) {
+  /* Mobile: only the current note name is shown — hierarchy navigation lives in the sidebar drawer */
+  .breadcrumb > :not(.breadcrumb-current) {
+    display: none;
+  }
+}

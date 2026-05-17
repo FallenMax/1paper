@@ -1,42 +1,48 @@
 import { Disposable } from '../../common/disposable'
 import { icons } from '../icon/icons'
 import { Theme, UiStore } from '../store/ui.store'
-import { Select } from '../ui/select'
+import { IconButton } from '../ui/icon_button'
 import { ViewController } from '../util/view_controller'
 
-const themeIcons = {
+const cycle: Record<Theme, Theme> = {
+  system: 'light',
+  light: 'dark',
+  dark: 'system',
+}
+const themeIcons: Record<Theme, string> = {
   light: icons.sunOutline,
   dark: icons.moonOutline,
   system: icons.desktopOutline,
-} as const
+}
+const themeLabels: Record<Theme, string> = {
+  light: 'Theme: light (click for dark)',
+  dark: 'Theme: dark (click for system)',
+  system: 'Theme: system (click for light)',
+}
 
 export class ThemePicker extends Disposable implements ViewController {
-  static readonly themes = ['light', 'dark', 'system'] as const
   dom: HTMLElement
-  select: Select
+  private button: IconButton
   constructor() {
     super()
-    this.select = new Select({
-      icon: icons.sunOutline,
-      options: [
-        { label: 'Light', value: 'light' },
-        { label: 'Dark', value: 'dark' },
-        { label: 'System', value: 'system' },
-      ],
-      onChange: (value) => {
-        UiStore.shared.setTheme(value as Theme)
+    this.button = new IconButton({
+      icon: themeIcons[UiStore.shared.getTheme()],
+      buttonOptions: {
+        title: themeLabels[UiStore.shared.getTheme()],
+        onclick: () => {
+          UiStore.shared.setTheme(cycle[UiStore.shared.getTheme()])
+        },
       },
-      initialValue: UiStore.shared.getTheme(),
-      label: 'Theme',
     })
-    this.dom = this.select.dom
+    this.dom = this.button.dom
   }
   init() {
     this.register(UiStore.shared.on('themeChanged', this.applyTheme.bind(this)))
     this.applyTheme()
   }
   applyTheme() {
-    this.select.setValue(UiStore.shared.getTheme())
-    this.select.setIcon(themeIcons[UiStore.shared.getTheme()])
+    const theme = UiStore.shared.getTheme()
+    this.button.setIcon(themeIcons[theme])
+    this.dom.title = themeLabels[theme]
   }
 }

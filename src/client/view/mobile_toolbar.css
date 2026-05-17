@@ -1,21 +1,14 @@
 .mobile-toolbar {
   position: fixed;
-  right: 4px;
-  bottom: 4px;
-  z-index: 9999;
-  background: var(--bg);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 8px;
-  gap: 8px;
-  height: fit-content;
+  right: 8px;
+  bottom: 8px;
+  z-index: 50;
+  background: var(--sheet-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgb(0 0 0 / 12%);
+  padding: 4px;
+  gap: 2px;
   display: flex;
   align-items: center;
-  justify-content: center;
-}
-
-html[data-theme='dark'] .mobile-toolbar {
-  background: var(--bg);
 }

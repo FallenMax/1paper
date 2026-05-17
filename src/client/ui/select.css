@@ -8,6 +8,8 @@
   svg {
     position: absolute;
     inset: 4px;
+    width: calc(100% - 8px);
+    height: calc(100% - 8px);
     color: inherit;
   }
   &:has(select:focus-visible) {
@@ -34,7 +36,7 @@
       color: var(--text);
     }
     option {
-      background-color: var(--bg);
+      background-color: var(--sheet-bg);
       color: var(--text);
     }
   }

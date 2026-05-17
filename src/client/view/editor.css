@@ -1,12 +1,25 @@
 .editor {
+  display: block;
+  width: 100%;
+  flex: 1;
+  min-height: 0;
   resize: none;
-  padding: 1em;
+  border: 0;
+  outline: 0;
+  background: var(--sheet-bg);
+  padding: 32px 32px 96px;
   color: var(--text);
-  line-height: 1.5;
-  font-size: 1.1rem;
-  font-family: monospace;
+  line-height: 1.65;
+  font-size: 1rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   -webkit-overflow-scrolling: touch;
   &[disabled] {
     color: var(--text-disabled);
+  }
+}
+
+@media (max-width: 768px) {
+  .editor {
+    padding: 20px 20px 112px;
   }
 }

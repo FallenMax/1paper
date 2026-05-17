@@ -1,11 +1,36 @@
 import { join } from 'path'
 import { defineConfig } from 'vitest/config'
 
+/**
+ * Dev-only middleware: rewrite `/` to `/landing.html` so the landing page is
+ * previewable at the vite dev server root. In prod the koa server handles `/`
+ * directly. Without this, vite would serve `index.html` and the SPA fallback
+ * in `app.ts` would redirect to a random note id.
+ */
+const serveLandingAtRoot = {
+  name: 'serve-landing-at-root',
+  configureServer(server: any) {
+    server.middlewares.use((req: any, _res: any, next: any) => {
+      const url: string = req.url ?? ''
+      if (url === '/' || url.startsWith('/?')) {
+        req.url = '/landing.html' + url.slice(1)
+      }
+      next()
+    })
+  },
+}
+
 export default defineConfig({
+  plugins: [serveLandingAtRoot],
+
   build: {
     outDir: join(__dirname, 'public'),
     emptyOutDir: true,
     rollupOptions: {
+      input: {
+        main: join(__dirname, 'src/client/index.html'),
+        landing: join(__dirname, 'src/client/landing.html'),
+      },
       output: {
         assetFileNames: (assetInfo) => {
           const fileName = assetInfo.originalFileNames?.[0]

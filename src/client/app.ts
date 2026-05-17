@@ -9,12 +9,16 @@ import { h, listenDom } from './util/dom'
 import { isMobile } from './util/env'
 import { Router } from './util/router'
 import { ViewController } from './util/view_controller'
+import { Breadcrumb } from './view/breadcrumb'
 import { Editor } from './view/editor'
 import { HtmlPreview } from './view/html_preview'
+import { LayoutToggle } from './view/layout_toggle'
 import { MarkdownPreview } from './view/markdown_preview'
 import { MobileToolbar } from './view/mobile_toolbar'
 import { Sidebar } from './view/sidebar'
-import { TopToolbar } from './view/top_toolbar'
+import { SidebarToggle } from './view/sidebar_toggle'
+import { ThemePicker } from './view/theme_picker'
+import { ViewModePicker } from './view/view_mode_picker'
 
 class App extends Disposable implements ViewController {
   dom: HTMLElement
@@ -24,11 +28,16 @@ class App extends Disposable implements ViewController {
   private markdownPreview?: MarkdownPreview
   private htmlPreview?: HtmlPreview
   private mobileToolbar: MobileToolbar | undefined
-  private topToolbar: TopToolbar
+  private sidebarToggle: SidebarToggle
+  private themePicker: ThemePicker
+  private viewModePicker: ViewModePicker
+  private layoutToggle: LayoutToggle
+  private breadcrumb: Breadcrumb
   private sidebar: Sidebar
   private id: string
   private $saveStatus: HTMLElement
   private $main: HTMLElement
+  private $editorPane: HTMLElement
   private isDisconnected = false
   private isSaving = false
 
@@ -49,7 +58,11 @@ class App extends Disposable implements ViewController {
 
     this.noteService = this.register(new NoteService(this.rpcClient))
 
-    this.topToolbar = this.register(new TopToolbar(id))
+    this.sidebarToggle = this.register(new SidebarToggle())
+    this.themePicker = this.register(new ThemePicker())
+    this.viewModePicker = this.register(new ViewModePicker())
+    this.layoutToggle = this.register(new LayoutToggle())
+    this.breadcrumb = this.register(new Breadcrumb(id))
     this.sidebar = this.register(new Sidebar(id, this.noteService))
 
     this.editor = new Editor({
@@ -67,11 +80,23 @@ class App extends Disposable implements ViewController {
 
     this.dom = h('div', { id: 'app' }, [
       h('header', {}, [
-        this.topToolbar.dom,
-        h('div', { className: 'spacer' }),
+        this.sidebarToggle.dom,
+        this.breadcrumb.dom,
         (this.$saveStatus = h('span', { className: 'save-status' }, 'Saving...')),
+        h('div', { className: 'header-actions' }, [
+          this.viewModePicker.dom,
+          this.themePicker.dom,
+          this.layoutToggle.dom,
+        ]),
       ]),
-      (this.$main = h('main', {}, [this.editor.dom, this.sidebar.dom])),
+      (this.$main = h('main', {}, [
+        this.sidebar.dom,
+        h('div', {
+          className: 'sidebar-backdrop',
+          onclick: () => UiStore.shared.setTreeVisible(false),
+        }),
+        (this.$editorPane = h('div', { className: 'editor-pane' }, [this.editor.dom])),
+      ])),
       this.mobileToolbar?.dom,
     ])
   }
@@ -94,7 +119,11 @@ class App extends Disposable implements ViewController {
     )
 
     this.editor.init()
-    this.topToolbar.init()
+    this.sidebarToggle.init()
+    this.themePicker.init()
+    this.viewModePicker.init()
+    this.layoutToggle.init()
+    this.breadcrumb.init()
     this.sidebar.init()
 
     this.register(UiStore.shared.on('themeChanged', this.applyTheme.bind(this)))
@@ -104,26 +133,20 @@ class App extends Disposable implements ViewController {
     this.applyTheme()
 
     this.register(UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this)))
-    this.register(UiStore.shared.on('treeVisibilityChanged', this.applyTreeVisibility.bind(this)))
+    this.register(UiStore.shared.on('treeVisibilityChanged', this.applySidebarVisibility.bind(this)))
     this.register(UiStore.shared.on('layoutWidthChanged', this.applyLayoutWidth.bind(this)))
     this.applyViewMode()
     this.applyLayoutWidth()
     this.applySaveStatus()
+    this.applySidebarVisibility()
 
-    document.title = `${id} - 1paper`
+    document.title = `${this.id} - 1paper`
 
     this.register(
       Router.shared.on('navigatedTo', (e) => {
         this.setId(e.id)
       }),
     )
-
-    this.register(
-      listenDom(window, 'resize', () => {
-        this.applyTreeVisibility()
-      }),
-    )
-    this.applyTreeVisibility()
   }
 
   /** Switch to a different note ID using SPA navigation */
@@ -134,7 +157,6 @@ class App extends Disposable implements ViewController {
 
     this.id = newId
 
-    // Create new editor
     this.editor.dispose()
     this.editor.dom.remove()
     this.editor = new Editor({
@@ -150,7 +172,7 @@ class App extends Disposable implements ViewController {
     this.markdownPreview?.setEditor(this.editor)
     this.htmlPreview?.setEditor(this.editor)
     this.mobileToolbar?.setEditor(this.editor)
-    await this.topToolbar.setId(newId)
+    await this.breadcrumb.setId(newId)
     await this.sidebar.setId(newId)
     document.title = `${newId} - 1paper`
 
@@ -163,12 +185,13 @@ class App extends Disposable implements ViewController {
     $saveStatus.classList.toggle('is-error', this.isDisconnected)
     $saveStatus.textContent = this.isDisconnected ? 'Connecting...' : 'Saving...'
   }
+
   private async applyViewMode() {
     const viewMode = UiStore.shared.viewMode
 
     if (viewMode === 'text') {
-      if (!this.$main.contains(this.editor.dom)) {
-        this.$main.appendChild(this.editor.dom)
+      if (!this.$editorPane.contains(this.editor.dom)) {
+        this.$editorPane.appendChild(this.editor.dom)
       }
     } else {
       this.editor.dom.remove()
@@ -179,8 +202,8 @@ class App extends Disposable implements ViewController {
         const { MarkdownPreview } = await import('./view/markdown_preview')
         this.markdownPreview = new MarkdownPreview(this.editor)
       }
-      if (!this.$main.contains(this.markdownPreview.dom)) {
-        this.$main.appendChild(this.markdownPreview.dom)
+      if (!this.$editorPane.contains(this.markdownPreview.dom)) {
+        this.$editorPane.appendChild(this.markdownPreview.dom)
       }
     } else {
       this.markdownPreview?.dom.remove()
@@ -191,8 +214,8 @@ class App extends Disposable implements ViewController {
         const { HtmlPreview } = await import('./view/html_preview')
         this.htmlPreview = new HtmlPreview(this.editor)
       }
-      if (!this.$main.contains(this.htmlPreview.dom)) {
-        this.$main.appendChild(this.htmlPreview.dom)
+      if (!this.$editorPane.contains(this.htmlPreview.dom)) {
+        this.$editorPane.appendChild(this.htmlPreview.dom)
       }
     } else {
       this.htmlPreview?.dom.remove()
@@ -203,28 +226,13 @@ class App extends Disposable implements ViewController {
     const theme = UiStore.shared.getComputedTheme()
     document.documentElement.dataset.theme = theme
   }
-  private applyTreeVisibility() {
+  private applySidebarVisibility() {
     this.$main.classList.toggle('is-sidebar-open', UiStore.shared.isTreeVisible())
-
-    const winWidth = window.innerWidth
-    const layoutWidth = UiStore.shared.getLayoutWidth()
-    const maxPageWidth = layoutWidth === 'wide' ? 1400 : 800
-    const pageWidth = Math.min(winWidth, maxPageWidth)
-    const sidebarWidth = 200
-    const origLeft = (winWidth - pageWidth) / 2
-    const left1 = (winWidth - pageWidth - sidebarWidth) / 2
-    const left2 = sidebarWidth
-    const left = Math.max(left1, left2, origLeft)
-    const offset = left - origLeft
-    this.$main.style.setProperty('--main-offset', `${offset}px`)
   }
-
   private applyLayoutWidth() {
     const layoutWidth = UiStore.shared.getLayoutWidth()
-    const cssVarValue = layoutWidth === 'wide' ? 'var(--app-width-wide)' : 'var(--app-width-normal)'
-    document.documentElement.style.setProperty('--app-width', cssVarValue)
-    // Recalculate sidebar offset when layout width changes
-    this.applyTreeVisibility()
+    const cssVarValue = layoutWidth === 'wide' ? 'var(--editor-max-width-wide)' : 'var(--editor-max-width-normal)'
+    document.documentElement.style.setProperty('--editor-max-width', cssVarValue)
   }
 }
 

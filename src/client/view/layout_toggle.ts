@@ -14,6 +14,7 @@ export class LayoutToggle extends Disposable implements ViewController {
     this.dom = new IconButton({
       icon: this.getIcon(),
       buttonOptions: {
+        className: 'layout-toggle',
         title: this.getTitle(),
         onclick: () => {
           const newWidth = this.layoutWidth === 'normal' ? 'wide' : 'normal'

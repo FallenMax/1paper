@@ -1,5 +1,11 @@
 .markdown-preview {
-  padding: 1em;
+  background: var(--sheet-bg);
+  padding: 32px;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+}
+@media (max-width: 768px) {
+  .markdown-preview {
+    padding: 20px;
+  }
 }

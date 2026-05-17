@@ -1,19 +1,26 @@
 .segmented-control {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   user-select: none;
-  gap: 8px;
+  gap: 2px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.82rem;
   button {
     appearance: none;
-    border: none;
-    padding: 0;
+    border: 0;
     background: none;
     cursor: pointer;
-    font-size: 0.9rem;
     color: var(--text-secondary);
-    opacity: 0.5;
-    &.is-active {
-      opacity: 1;
-    }
+    padding: 4px 8px;
+    border-radius: 3px;
+    font: inherit;
+    transition: color 0.15s, background-color 0.15s;
+  }
+  button:hover {
+    color: var(--text);
+  }
+  button.is-active {
+    color: var(--text);
+    background: var(--bg-hover);
   }
 }

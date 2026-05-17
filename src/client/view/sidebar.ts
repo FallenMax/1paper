@@ -2,9 +2,9 @@ import { Disposable } from '../../common/disposable'
 import { icons } from '../icon/icons'
 import { NoteService } from '../service/note.service'
 import { UiStore } from '../store/ui.store'
-import { Icon } from '../ui/icon'
+import { IconButton } from '../ui/icon_button'
 import { Link } from '../ui/link'
-import { Select } from '../ui/select'
+import { showConfirmPopover, showInputPopover, showMenuPopover } from '../ui/popover'
 import { h } from '../util/dom'
 import { showError } from '../util/error'
 import { Router } from '../util/router'
@@ -20,20 +20,19 @@ interface TreeNode {
 export class Sidebar extends Disposable implements ViewController {
   dom: HTMLElement
   private $noteList: HTMLUListElement
-  private $header: HTMLElement
+  private $addInput!: HTMLInputElement
   private treeNoteIds: string[] = []
   get rootId() {
     return this.id.split('/')[0]
   }
   constructor(private id: string, private noteService: NoteService) {
     super()
-    this.dom = h('aside', {}, [
-      h('section', {}, [
-        (this.$header = h('h3', {}, [new Icon(icons.folder).dom, `Notes in "${this.rootId}"`])),
-        (this.$noteList = h('ul', { className: 'note-list' }, [])),
-      ]),
+    this.dom = h('aside', { className: 'sidebar' }, [
+      (this.$noteList = h('ul', { className: 'note-list' }, [])),
+      this.makeAddFooter(),
     ])
   }
+
   async init() {
     this.register(
       UiStore.shared.on('treeVisibilityChanged', () => {
@@ -41,10 +40,8 @@ export class Sidebar extends Disposable implements ViewController {
       }),
     )
 
-    // Listen for sidebar updates from server
     this.register(
       this.noteService.on('treeUpdate', ({ rootId }) => {
-        // Only refresh if this sidebar's root matches the notification
         if (this.rootId === rootId) {
           this.updateTreeNoteIds()
         }
@@ -55,6 +52,50 @@ export class Sidebar extends Disposable implements ViewController {
     await this.updateTreeNoteIds()
   }
 
+  private makeAddFooter(): HTMLElement {
+    this.$addInput = h('input', {
+      className: 'add-note-input',
+      type: 'text',
+      placeholder: 'new note',
+      spellcheck: false,
+      autocomplete: 'off',
+      onkeydown: (e: KeyboardEvent) => {
+        if (e.key === 'Enter') {
+          e.preventDefault()
+          this.submitNewNote()
+        } else if (e.key === 'Escape') {
+          this.$addInput.value = ''
+          this.$addInput.blur()
+        }
+      },
+    }) as HTMLInputElement
+
+    const $addButton = new IconButton({
+      icon: icons.addOutline,
+      buttonOptions: {
+        title: 'Create note',
+        onclick: () => this.submitNewNote(),
+      },
+    }).dom
+
+    return h('div', { className: 'sidebar-footer' }, [
+      h('form', { className: 'add-note-form', onsubmit: (e: Event) => e.preventDefault() }, [
+        this.$addInput,
+        $addButton,
+      ]),
+    ])
+  }
+
+  private submitNewNote() {
+    const raw = this.$addInput.value.trim()
+    if (!raw) return
+    const name = raw.replace(/^\/+/, '').replace(/\s+/g, '-')
+    if (!name) return
+    const targetPath = name.includes('/') ? name : `${this.rootId}/${name}`
+    this.$addInput.value = ''
+    Router.shared.navigateTo(targetPath)
+  }
+
   /** Build tree structure from note IDs */
   private buildTree(noteIds: string[]): TreeNode[] {
     const root: TreeNode = {
@@ -63,7 +104,6 @@ export class Sidebar extends Disposable implements ViewController {
       children: [],
     }
 
-    // Build tree structure from each note ID
     for (const noteId of noteIds) {
       const segments = noteId.split('/').filter((s) => s.length > 0)
       let current = root
@@ -86,7 +126,6 @@ export class Sidebar extends Disposable implements ViewController {
       }
     }
 
-    // Sort children at each level
     const sortTreeNodes = (nodes: TreeNode[]) => {
       nodes.sort((a, b) => a.segment.localeCompare(b.segment))
       for (const node of nodes) {
@@ -101,12 +140,10 @@ export class Sidebar extends Disposable implements ViewController {
   /** Render tree structure recursively */
   private renderTree(nodes: TreeNode[], level: number = 0): HTMLElement[] {
     const elements: HTMLElement[] = []
-
     for (const node of nodes) {
       elements.push(this.makeTreeItem(node, level))
       elements.push(...this.renderTree(node.children, level + 1))
     }
-
     return elements
   }
 
@@ -125,167 +162,133 @@ export class Sidebar extends Disposable implements ViewController {
     const noteId = node.fullPath.slice(1)
     const isCurrentNote = noteId === this.id
 
-    const menuSelect = new Select({
+    const menuButton = new IconButton({
       icon: icons.ellipsisHorizontal,
-      label: 'Actions',
-      initialValue: '',
-      options: [
-        { label: 'Add child', value: 'addChild' },
-        { label: 'Move', value: 'move' },
-        { label: 'Delete', value: 'delete' },
-      ],
-      onChange: async (action) => {
-        if (action === 'addChild') {
-          await this.handleAddChild(noteId)
-        } else if (action === 'delete') {
-          await this.handleDelete(noteId)
-        } else if (action === 'move') {
-          await this.handleMove(noteId)
-        }
+      buttonOptions: {
+        title: 'Actions',
+        onclick: (e: MouseEvent) => {
+          e.stopPropagation()
+          showMenuPopover({
+            anchor: menuButton.dom,
+            items: [
+              { label: 'Add child', value: 'addChild' },
+              { label: 'Move', value: 'move' },
+              { label: 'Delete', value: 'delete', isDanger: true },
+            ],
+            onSelect: (action) => {
+              if (action === 'addChild') {
+                this.handleAddChild(noteId, menuButton.dom)
+              } else if (action === 'delete') {
+                this.handleDelete(noteId, menuButton.dom)
+              } else if (action === 'move') {
+                this.handleMove(noteId, menuButton.dom)
+              }
+            },
+          })
+        },
       },
     })
 
     const linkElement = new Link({ href: node.fullPath, children: [node.segment] })
 
-    const menuWrapper = h('div', { className: 'tree-item-menu' }, [menuSelect.dom])
+    const menuWrapper = h('div', { className: 'tree-item-menu' }, [menuButton.dom])
 
     return h(
       'li',
       {
         className: `note-item ${isCurrentNote ? 'is-current' : ''}`,
-        style: { paddingLeft: `${level * 16}px` },
+        style: { paddingLeft: `${level * 12}px` },
       },
       [h('div', { className: 'tree-item-content' }, [linkElement.dom, menuWrapper])],
     )
   }
 
-  private async handleAddChild(parentNoteId: string): Promise<void> {
-    try {
-      // Prompt user for child note name
-      const childName = prompt(`Enter child note name for "${parentNoteId}":`)
-      if (!childName || !childName.trim()) {
-        return
-      }
-
-      // Construct full child note path
-      const childNoteId = `${parentNoteId}/${childName.trim()}`
-
-      // Navigate to the new child note (will automatically create empty note)
-      await Router.shared.navigateTo(childNoteId)
-    } catch (error) {
-      showError(error)
-    }
+  private handleAddChild(parentNoteId: string, anchor: HTMLElement): void {
+    showInputPopover({
+      anchor,
+      prompt: `New child under ${parentNoteId}`,
+      placeholder: 'name',
+      submitLabel: 'Create',
+      onSubmit: (childName) => {
+        const sanitized = childName.trim().replace(/\s+/g, '-')
+        if (!sanitized) return
+        Router.shared.navigateTo(`${parentNoteId}/${sanitized}`).catch(showError)
+      },
+    })
   }
 
-  private async handleDelete(noteId: string): Promise<void> {
+  private async handleDelete(noteId: string, anchor: HTMLElement): Promise<void> {
     try {
-      // Get all descendant notes that will be affected
       const descendantIds = await this.noteService.fetchDescendantNoteIds(noteId)
-      const allAffectedIds = [noteId, ...descendantIds]
+      const total = descendantIds.length + 1
+      const hasDescendants = descendantIds.length > 0
 
-      // Show confirmation dialog
-      let confirmMessage = `Are you sure you want to delete "${noteId}"?`
-
-      if (descendantIds.length > 0) {
-        confirmMessage += `\n\nThis will also delete ${descendantIds.length} child note(s):`
-        const noteList = allAffectedIds.map((id) => `• ${id}`).join('\n')
-        confirmMessage += `\n${noteList}`
-
-        const expectedNumber = allAffectedIds.length
-        const userInput = prompt(
-          `${confirmMessage}\n\nTo confirm this dangerous operation, please enter the number of notes that will be deleted: ${expectedNumber}`,
-        )
-
-        if (userInput !== expectedNumber.toString()) {
-          return // User cancelled or entered wrong number
-        }
-      } else {
-        // Single note deletion, simple confirmation
-        if (!confirm(confirmMessage)) {
-          return
-        }
-      }
-
-      // Proceed with deletion
-      const result = await this.noteService.deleteNote(noteId)
-
-      // If we just deleted the current note, navigate away
-      if (noteId === this.id && this.id !== this.rootId) {
-        await Router.shared.navigateTo(this.rootId)
-      } else {
-        // Refresh the tree
-        await this.updateTreeNoteIds()
-      }
+      showConfirmPopover({
+        anchor,
+        message: hasDescendants
+          ? `Delete ${noteId} and ${descendantIds.length} sub-note${descendantIds.length === 1 ? '' : 's'}?`
+          : `Delete ${noteId}?`,
+        itemList: hasDescendants ? [noteId, ...descendantIds].slice(0, 12) : undefined,
+        confirmLabel: hasDescendants ? `Delete ${total} notes` : 'Delete',
+        isDanger: true,
+        onConfirm: async () => {
+          try {
+            await this.noteService.deleteNote(noteId)
+            if (noteId === this.id && this.id !== this.rootId) {
+              await Router.shared.navigateTo(this.rootId)
+            } else {
+              await this.updateTreeNoteIds()
+            }
+          } catch (error) {
+            showError(error)
+          }
+        },
+      })
     } catch (error) {
       showError(error)
     }
   }
 
-  private async handleMove(oldId: string): Promise<void> {
+  private async handleMove(oldId: string, anchor: HTMLElement): Promise<void> {
     try {
-      // Get all descendant notes that will be affected
       const descendantIds = await this.noteService.fetchDescendantNoteIds(oldId)
-      const allAffectedIds = [oldId, ...descendantIds]
+      const hasDescendants = descendantIds.length > 0
 
-      // Get new path from user
-      const newId = prompt(`Enter new path for "${oldId}":`, oldId)
-      if (!newId || newId === oldId) {
-        return
-      }
-
-      // Prevent moving to descendant path
-      if (newId.startsWith(oldId + '/')) {
-        alert(`Cannot move "${oldId}" to its own descendant path "${newId}".`)
-        return
-      }
-
-      // Show confirmation dialog
-      let confirmMessage = `Are you sure you want to move "${oldId}" to "${newId}"?`
-
-      if (descendantIds.length > 0) {
-        confirmMessage += `\n\nThis will also move ${descendantIds.length} child note(s):`
-
-        // Show affected notes with their new paths
-        const moveList = allAffectedIds
-          .map((id) => {
-            const targetId = id.replace(oldId, newId)
-            return `• ${id} → ${targetId}`
-          })
-          .join('\n')
-        confirmMessage += `\n${moveList}`
-
-        const expectedNumber = allAffectedIds.length
-        const userInput = prompt(
-          `${confirmMessage}\n\nTo confirm this operation, please enter the number of notes that will be moved: ${expectedNumber}`,
-        )
-
-        if (userInput !== expectedNumber.toString()) {
-          return // User cancelled or entered wrong number
-        }
-      } else {
-        // Single note move, simple confirmation
-        if (!confirm(confirmMessage)) {
-          return
-        }
-      }
-
-      // Proceed with move
-      const result = await this.noteService.moveNote(oldId, newId)
-
-      // If we just moved the current note, navigate to new location
-      if (oldId === this.id) {
-        await Router.shared.navigateTo(newId)
-      } else {
-        // Refresh the tree
-        await this.updateTreeNoteIds()
-      }
+      showInputPopover({
+        anchor,
+        prompt: hasDescendants
+          ? `Move ${oldId} (and ${descendantIds.length} sub-note${descendantIds.length === 1 ? '' : 's'}) to`
+          : `Move ${oldId} to`,
+        initialValue: oldId,
+        placeholder: 'new path',
+        submitLabel: 'Move',
+        onSubmit: async (newId) => {
+          const target = newId.trim()
+          if (!target || target === oldId) return
+          if (target.startsWith(oldId + '/')) {
+            showError(new Error(`Cannot move "${oldId}" into its own descendant path "${target}".`))
+            return
+          }
+          try {
+            await this.noteService.moveNote(oldId, target)
+            if (oldId === this.id) {
+              await Router.shared.navigateTo(target)
+            } else {
+              await this.updateTreeNoteIds()
+            }
+          } catch (error) {
+            showError(error)
+          }
+        },
+      })
     } catch (error) {
       showError(error)
     }
   }
 
   private applyExpandState() {
-    this.dom.style.display = UiStore.shared.isTreeVisible() ? 'block' : 'none'
+    // Visibility is now controlled by the parent (main.is-sidebar-open)
+    // No-op kept to satisfy event subscription contract.
   }
 
   /** Switch to a different note ID */
@@ -293,10 +296,7 @@ export class Sidebar extends Disposable implements ViewController {
     if (newId === this.id) {
       return
     }
-
     this.id = newId
-    this.$header.replaceChildren(new Icon(icons.folder).dom, `Notes in "${this.rootId}"`)
-
     await this.updateTreeNoteIds()
   }
 }

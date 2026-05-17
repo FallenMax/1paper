@@ -2,11 +2,13 @@ import Router from '@koa/router'
 import { readFileSync } from 'fs'
 import send from 'koa-send'
 import path from 'path'
-import { generatePageId } from '../../common/lib/generate_id'
 import { config } from '../config'
 import { NoteService } from '../service/note.service'
 
 let indexHtml = readFileSync(path.join(config.staticDir, 'index.html'), 'utf-8')
+let landingHtml = readFileSync(path.join(config.staticDir, 'landing.html'), 'utf-8')
+
+const NOINDEX_META = '<meta name="robots" content="noindex, nofollow" />'
 
 function encodeHtml(str: string): string {
   return str
@@ -53,10 +55,16 @@ export const routes = (noteService: NoteService) => {
     const html = indexHtml
       .replace('<title>1paper</title>', `<title>${safeNoteId}·1paper</title>`)
       .replace('<!-- %analytics% -->', analyticScript ? analyticScript : '')
+      .replace('<!-- %meta% -->', NOINDEX_META)
       .replace('<!-- %title% -->', `${safeNoteId}`)
       .replace('<!-- %script% -->', `<script>window.__note = ${escapeScript(JSON.stringify(note.note))}</script>`)
 
     return html
+  }
+
+  function renderLandingHtml() {
+    const analyticScript = process.env.ANALYTICS_SCRIPT
+    return landingHtml.replace('<!-- %analytics% -->', analyticScript ? analyticScript : '')
   }
 
   router
@@ -174,10 +182,24 @@ export const routes = (noteService: NoteService) => {
       }
     })
 
-    // robots.txt - disallow all
+    // robots.txt - allow landing + assets, disallow user notes
     .get('/robots.txt', async (ctx) => {
-      ctx.body = 'User-agent: *\nDisallow: /'
+      ctx.body = ['User-agent: *', 'Allow: /$', 'Allow: /assets/', 'Disallow: /', '', 'Sitemap: https://1paper.at/sitemap.xml'].join('\n')
       ctx.type = 'text/plain'
+    })
+
+    // sitemap.xml - list only the landing page; never expose user notes
+    .get('/sitemap.xml', async (ctx) => {
+      ctx.body =
+        '<?xml version="1.0" encoding="UTF-8"?>\n' +
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+        '  <url>\n' +
+        '    <loc>https://1paper.at/</loc>\n' +
+        '    <changefreq>monthly</changefreq>\n' +
+        '    <priority>1.0</priority>\n' +
+        '  </url>\n' +
+        '</urlset>\n'
+      ctx.type = 'application/xml'
     })
 
     // .well-known/* - return 404 for all requests
@@ -185,9 +207,11 @@ export const routes = (noteService: NoteService) => {
       ctx.status = 404
     })
 
-    // pages
+    // landing page
     .get('/', async (ctx) => {
-      await ctx.redirect(generatePageId())
+      ctx.body = renderLandingHtml()
+      ctx.type = 'text/html'
+      ctx.set('Cache-Control', 'public, max-age=300')
     })
     .get('/:id*', async (ctx) => {
       const path = ctx.path

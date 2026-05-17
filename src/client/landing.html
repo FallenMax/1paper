@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>1paper: free online notepad, no signup</title>
+    <meta
+      name="description"
+      content="A minimalist online notepad. No signup, no account. Open a URL, start writing. Saves as you type and syncs in real time. Share the URL to collaborate."
+    />
+    <link rel="canonical" href="https://1paper.at/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://1paper.at/" />
+    <meta property="og:title" content="1paper: free online notepad, no signup" />
+    <meta
+      property="og:description"
+      content="A minimalist online notepad. Open a URL, start writing. Saves as you type. Share to collaborate in real time."
+    />
+    <meta property="og:image" content="https://1paper.at/assets/icon-192.png" />
+    <meta property="og:site_name" content="1paper" />
+
+    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:title" content="1paper: free online notepad" />
+    <meta
+      name="twitter:description"
+      content="No signup. Open a URL, start writing. Saves as you type. Share to collaborate."
+    />
+    <meta name="twitter:image" content="https://1paper.at/assets/icon-192.png" />
+
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#edeef0" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#222222" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="1paper" />
+
+    <link rel="apple-touch-icon" href="/assets/icon-192.png" />
+    <link rel="icon" sizes="192x192" href="/assets/icon-192.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/assets/icon-32.png" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "1paper",
+        "url": "https://1paper.at/",
+        "description": "A minimalist online notepad. No signup, no account. Open a URL, start writing. Saves as you type and syncs in real time. Share the URL to collaborate.",
+        "applicationCategory": "Productivity",
+        "operatingSystem": "Web browser",
+        "browserRequirements": "Requires JavaScript and a modern browser",
+        "offers": {
+          "@type": "Offer",
+          "price": "0",
+          "priceCurrency": "USD"
+        }
+      }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,300..600;1,6..72,300..600&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- %analytics% -->
+
+    <style>
+      /* Palette mirrors the editor (src/client/app.css) so landing and product feel like one surface */
+      :root {
+        --bg: rgb(237, 238, 240);
+        --ink: #333;
+        --ink-muted: #84878c;
+        --accent: rgb(0 0 0 / 12%);
+        --font-serif: 'Newsreader', ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+        --spacing-unit: clamp(1rem, 3vw, 2.5rem);
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --bg: rgb(34, 34, 34);
+          --ink: rgb(255 255 255 / 78%);
+          --ink-muted: rgb(255 255 255 / 50%);
+          --accent: rgb(255 255 255 / 16%);
+        }
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      html,
+      body {
+        overflow: hidden;
+      }
+
+      body {
+        background-color: var(--bg);
+        background-image: url('/assets/bg.png');
+        background-repeat: repeat;
+        color: var(--ink);
+        font-family: var(--font-mono);
+        min-height: 100svh;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: var(--spacing-unit);
+        transition:
+          background-color 0.4s ease,
+          color 0.4s ease;
+        opacity: 0;
+        animation: fadeIn 1.2s ease-out forwards;
+      }
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-image: none;
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      ::selection {
+        background-color: var(--accent);
+        color: var(--ink);
+      }
+
+      main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        max-width: 1200px;
+        margin-bottom: 10vh;
+      }
+
+      .url-form {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        justify-content: center;
+        margin-bottom: clamp(2rem, 5vw, 4rem);
+        max-width: 100%;
+      }
+
+      .brand-base {
+        font-family: var(--font-serif);
+        font-size: clamp(2.5rem, 7vw, 6rem);
+        font-weight: 300;
+        font-style: italic;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        white-space: nowrap;
+        transition: opacity 0.3s ease;
+      }
+      .url-form:has(input:focus) .brand-base {
+        opacity: 0.4;
+      }
+
+      .input-wrapper {
+        position: relative;
+        display: inline-block;
+        margin-left: 0.7em;
+      }
+
+      input[type='text'] {
+        font-family: var(--font-serif);
+        font-size: clamp(2.5rem, 7vw, 6rem);
+        font-weight: 500;
+        font-style: normal;
+        letter-spacing: -0.02em;
+        line-height: 1;
+        white-space: nowrap;
+        field-sizing: content;
+
+        color: var(--ink);
+        background: transparent;
+        border: none;
+        border-bottom: 1.5px solid var(--ink-muted);
+        outline: none;
+        padding: 0 0 0.05em 0;
+        caret-color: var(--ink);
+        transition:
+          width 0.1s ease,
+          border-color 0.3s ease;
+      }
+      input[type='text']:focus {
+        border-bottom-color: var(--ink);
+      }
+      input[type='text']::placeholder {
+        color: var(--ink-muted);
+        opacity: 0.5;
+      }
+
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+
+      .description {
+        font-family: var(--font-mono);
+        font-size: clamp(0.65rem, 1vw, 0.75rem);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--ink-muted);
+        text-align: center;
+        line-height: 1.6;
+        max-width: 400px;
+      }
+
+      footer {
+        position: absolute;
+        bottom: var(--spacing-unit);
+        left: 0;
+        width: 100%;
+        text-align: center;
+      }
+      .source-link {
+        font-family: var(--font-mono);
+        font-size: 0.7rem;
+        color: var(--ink-muted);
+        text-decoration: none;
+        padding-bottom: 2px;
+        border-bottom: 1px solid transparent;
+        transition:
+          border-color 0.2s ease,
+          color 0.2s ease;
+      }
+      .source-link:hover {
+        color: var(--ink);
+        border-bottom-color: var(--ink);
+      }
+
+      @media (max-width: 480px) {
+        .url-form {
+          flex-direction: column;
+          align-items: center;
+          text-align: center;
+        }
+        .brand-base {
+          margin-bottom: 0.5rem;
+        }
+        input[type='text'] {
+          text-align: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <form class="url-form" id="open-form" autocomplete="off">
+        <span class="brand-base">1paper.at/</span>
+        <div class="input-wrapper">
+          <input
+            type="text"
+            id="note-id"
+            name="note-id"
+            placeholder="idea"
+            autocomplete="off"
+            spellcheck="false"
+            autofocus
+          />
+        </div>
+        <button type="submit" class="visually-hidden" tabindex="-1">Go</button>
+      </form>
+
+      <p class="description">Paper in the cloud. No signup, just write.</p>
+    </main>
+
+    <footer>
+      <a class="source-link" href="https://github.com/FallenMax/1paper">Source on GitHub</a>
+    </footer>
+
+    <script>
+      ;(function () {
+        var charset = 'abcdefghijklmnopqrstuvwxyz'
+        function generatePageId(len) {
+          var out = ''
+          for (var i = 0; i < (len || 8); i++) {
+            out += charset.charAt(Math.floor(Math.random() * charset.length))
+          }
+          return out
+        }
+        function sanitize(v) {
+          return v.replaceAll(/[^A-Za-z0-9\-_]/g, '-')
+        }
+
+        var form = document.getElementById('open-form')
+        var input = document.getElementById('note-id')
+
+        const supportFieldSizing = window.getComputedStyle(input).getPropertyValue('field-sizing') === 'content'
+        function handleInput() {
+          const value = sanitize(input.value)
+          if (value !== input.value) {
+            input.value = value
+          }
+          var len = Math.max(input.value.length, input.placeholder.length)
+          if (!supportFieldSizing) {
+            input.style.width = len + 'ch'
+          }
+        }
+
+        input.addEventListener('input', handleInput)
+        window.addEventListener('resize', handleInput)
+        handleInput()
+
+        form.addEventListener('submit', function (e) {
+          e.preventDefault()
+          var id = sanitize(input.value) || generatePageId()
+          document.body.style.opacity = '0'
+          setTimeout(function () {
+            window.location.href = '/' + id
+          }, 400)
+        })
+
+        // Refocus after the entry animation settles
+        setTimeout(function () {
+          input.focus()
+        }, 100)
+      })()
+    </script>
+  </body>
+</html>

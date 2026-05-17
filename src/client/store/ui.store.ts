@@ -75,7 +75,7 @@ export class UiStore extends EventEmitter<{
   }
   //-------------- Sidebar (Tree) --------------
   isTreeVisible() {
-    return uiStorage.get('treeVisible') ?? false
+    return uiStorage.get('treeVisible') ?? true
   }
   setTreeVisible(visible: boolean) {
     uiStorage.set('treeVisible', visible)
