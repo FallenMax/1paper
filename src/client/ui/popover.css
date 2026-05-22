@@ -3,7 +3,6 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
   box-shadow: 0 8px 24px rgb(0 0 0 / 12%), 0 1px 0 rgb(0 0 0 / 4%);
-  padding: var(--popover-pad);
   z-index: 100;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85rem;
@@ -32,14 +31,22 @@ html[data-theme='dark'] .popover {
   box-shadow: 0 8px 24px rgb(0 0 0 / 40%), 0 1px 0 rgb(0 0 0 / 30%);
 }
 
+.popover--menu {
+  padding: var(--popover-pad);
+}
+
+.popover--panel {
+  padding: var(--popover-panel-pad);
+}
+
 .popover-message {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   line-height: 1.5;
   color: var(--text);
 }
 
 .popover-list {
-  margin: 2px 0 6px;
+  margin: 4px 0 8px;
   padding: 0 0 0 10px;
   color: var(--text-secondary);
   font-size: 0.78rem;
@@ -55,14 +62,14 @@ html[data-theme='dark'] .popover {
   display: block;
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: var(--radius-inset);
+  border-radius: var(--radius-control);
   background: transparent;
   font-family: inherit;
   font-size: inherit;
   color: var(--text);
-  padding: 5px 8px;
+  padding: 6px 8px;
   outline: none;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   transition: border-color 0.15s, background-color 0.15s;
 }
 .popover-input:focus {
@@ -122,10 +129,8 @@ html[data-theme='dark'] .popover-menu-item.is-danger:hover {
 .popover-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 0;
-  margin-top: 2px;
-  overflow: hidden;
-  border-radius: var(--radius-inset);
+  gap: 2px;
+  margin-top: 4px;
 }
 
 .popover-button {
@@ -136,18 +141,9 @@ html[data-theme='dark'] .popover-menu-item.is-danger:hover {
   font-family: inherit;
   font-size: inherit;
   padding: 4px 10px;
-  border-radius: 0;
+  border-radius: var(--radius-control);
   cursor: pointer;
   transition: color 0.12s, background-color 0.12s;
-}
-.popover-actions .popover-button:first-child {
-  border-radius: var(--radius-inset) 0 0 var(--radius-inset);
-}
-.popover-actions .popover-button:last-child {
-  border-radius: 0 var(--radius-inset) var(--radius-inset) 0;
-}
-.popover-actions .popover-button:only-child {
-  border-radius: var(--radius-inset);
 }
 .popover-button:hover {
   color: var(--text);

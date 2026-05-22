@@ -29,6 +29,7 @@ body {
   /* Chrome (sidebar, header, inputs): flat controls on the desk */
   --radius-control: 6px;
   --popover-pad: 2px;
+  --popover-panel-pad: 10px;
   --radius-inset: calc(var(--radius-control) - var(--popover-pad));
   /* Sheet: the only elevated "paper" surface */
   --radius-sheet: 8px;

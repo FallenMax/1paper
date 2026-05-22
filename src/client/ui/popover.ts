@@ -3,9 +3,12 @@ import './popover.css'
 
 export type PopoverPlacement = 'right' | 'bottom-end'
 
+export type PopoverVariant = 'menu' | 'panel'
+
 export interface PopoverOptions {
   anchor: HTMLElement
   content: HTMLElement
+  variant?: PopoverVariant
   placement?: PopoverPlacement
   onClose?: () => void
 }
@@ -24,7 +27,8 @@ export class Popover {
   private closed = false
 
   constructor(private opts: PopoverOptions) {
-    this.dom = h('div', { className: 'popover', role: 'dialog' }, [opts.content])
+    const variant = opts.variant ?? 'panel'
+    this.dom = h('div', { className: `popover popover--${variant}`, role: 'dialog' }, [opts.content])
   }
 
   open() {
@@ -191,7 +195,7 @@ export function showConfirmPopover(opts: ConfirmPopoverOptions): Popover | null 
   children.push(h('div', { className: 'popover-actions' }, [cancelBtn, confirmBtn]))
 
   const content = h('div', { className: 'popover-body' }, children)
-  popover = new Popover({ anchor: opts.anchor, content })
+  popover = new Popover({ anchor: opts.anchor, content, variant: 'panel' })
   popover.open()
   return popover
 }
@@ -224,7 +228,12 @@ export function showMenuPopover(opts: MenuPopoverOptions): Popover | null {
   )
 
   const content = h('div', { className: 'popover-menu' }, buttons)
-  popover = new Popover({ anchor: opts.anchor, content, placement: opts.placement ?? 'right' })
+  popover = new Popover({
+    anchor: opts.anchor,
+    content,
+    variant: 'menu',
+    placement: opts.placement ?? 'right',
+  })
   popover.open()
   return popover
 }
@@ -281,7 +290,7 @@ export function showInputPopover(opts: InputPopoverOptions): Popover | null {
     h('div', { className: 'popover-actions' }, [cancelBtn, submitBtn]),
   ])
 
-  popover = new Popover({ anchor: opts.anchor, content })
+  popover = new Popover({ anchor: opts.anchor, content, variant: 'panel' })
   popover.open()
   // Re-focus input (Popover.open focuses first focusable, which is the input)
   input.select()

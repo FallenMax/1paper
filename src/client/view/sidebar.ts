@@ -250,6 +250,16 @@ export class Sidebar extends Disposable implements ViewController {
     }
   }
 
+  /** Map the open note id after moving a subtree (e.g. 1/2 → 3/2 when moving 1 → 3). */
+  private notePathAfterMove(currentId: string, oldId: string, target: string): string | null {
+    if (currentId === oldId) return target
+    const childPrefix = oldId + '/'
+    if (currentId.startsWith(childPrefix)) {
+      return target + currentId.slice(oldId.length)
+    }
+    return null
+  }
+
   private async handleMove(oldId: string, anchor: HTMLElement): Promise<void> {
     try {
       const descendantIds = await this.noteService.fetchDescendantNoteIds(oldId)
@@ -276,8 +286,9 @@ export class Sidebar extends Disposable implements ViewController {
           }
           try {
             await this.noteService.moveNote(oldId, target)
-            if (oldId === this.id) {
-              await Router.shared.navigateTo(target)
+            const newCurrentId = this.notePathAfterMove(this.id, oldId, target)
+            if (newCurrentId != null) {
+              await Router.shared.navigateTo(newCurrentId)
             } else {
               await this.updateTreeNoteIds()
             }
