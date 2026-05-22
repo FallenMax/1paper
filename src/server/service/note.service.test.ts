@@ -504,16 +504,17 @@ describe('NoteService', () => {
   describe('Edge Cases', () => {
     const TEST_PREFIX = 'edge-test'
 
-    it('should handle moving note with empty content', async () => {
+    it('should no-op when moving note with empty content', async () => {
       const oldId = `${TEST_PREFIX}-empty`
       const newId = `${TEST_PREFIX}-moved-empty`
 
-      // Create empty note (this should not actually create anything in DB)
       const note = await noteService.getNote(oldId)
       expect(note.note).toBe('')
 
-      // Try to move empty note - should throw error
-      await expect(noteService.moveRecursively(oldId, newId)).rejects.toThrow(UserError)
+      await noteService.moveRecursively(oldId, newId)
+
+      expect((await noteService.getNote(oldId)).note).toBe('')
+      expect((await noteService.getNote(newId)).note).toBe('')
     })
 
     it('should handle deleting note with empty content', async () => {

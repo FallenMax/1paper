@@ -114,8 +114,9 @@ export class NoteService extends EventEmitter<{
 
       const notesToMove = existingNotes.filter(({ note }) => note.note.length > 0)
 
+      // Empty tree: nothing to persist; client may still navigate to the new path.
       if (notesToMove.length === 0) {
-        throw new UserError(ErrorCode.NOTE_NOT_FOUND)
+        return
       }
 
       const moveOperations = notesToMove.map(({ id, note }) => {
