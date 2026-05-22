@@ -32,10 +32,12 @@ const setTextareaValue = (textarea: HTMLTextAreaElement, value: string) => {
   textarea.setSelectionRange(before.length, before.length + between.length)
 }
 
+export type SaveStatus = 'idle' | 'saving' | 'error'
+
 export interface EditorOptions {
   id: string
   noteService: NoteService
-  onSaveStatusChange: (isSaving: boolean) => void
+  onSaveStatusChange: (status: SaveStatus) => void
 }
 
 export class Editor
@@ -216,8 +218,9 @@ export class Editor
         this.remote = note
         this.remoteStale = false
         this.remoteUpdated = false
+        callback()
       })
-      .finally(callback)
+      .catch(callback)
   }
 
   private rebaseLocal(callback = noop) {
@@ -257,10 +260,10 @@ export class Editor
         return
       }
       this.setOperation('pull')
-      this.options.onSaveStatusChange(true)
-      this.pullRemote(() => {
+      this.options.onSaveStatusChange('saving')
+      this.pullRemote((error) => {
         this.setOperation('idle')
-        this.options.onSaveStatusChange(false)
+        this.options.onSaveStatusChange(error ? 'error' : 'idle')
         this.requestSync()
       })
       return
@@ -281,18 +284,20 @@ export class Editor
         return
       }
       this.setOperation('push')
-      this.options.onSaveStatusChange(true)
+      this.options.onSaveStatusChange('saving')
       this.dom.disabled = false
       this.pushLocal((error) => {
         if (error) {
           console.error(error)
           this.setOperation('idle')
+          const willRetryViaPull = error?.errcode === ErrorCode.HASH_MISMATCH
+          this.options.onSaveStatusChange(willRetryViaPull ? 'saving' : 'error')
           this.deferSync()
           this.dom.disabled = true
           return
         }
         this.setOperation('idle')
-        this.options.onSaveStatusChange(false)
+        this.options.onSaveStatusChange('idle')
         this.dom.disabled = false
         this.requestSync()
       })

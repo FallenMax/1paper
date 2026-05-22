@@ -99,19 +99,28 @@ body {
     padding: 0 12px;
     gap: 10px;
     flex-shrink: 0;
+    .status-cluster {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+      min-width: 0;
+    }
+    .connection-status,
     .save-status {
       color: var(--text-secondary);
       opacity: 0;
       transition: opacity 0.5s 0.5s;
       font-size: 0.82rem;
-      flex-shrink: 0;
-      &.is-saving {
+      white-space: nowrap;
+      &.is-visible {
         opacity: 0.7;
         transition: opacity 0s;
       }
-      &.is-error {
-        color: orangered;
-      }
+    }
+    .connection-status.is-offline,
+    .save-status.is-error {
+      color: orangered;
     }
     .header-actions {
       display: flex;

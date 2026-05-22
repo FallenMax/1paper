@@ -52,6 +52,10 @@ export class RpcClient<ServerAPI extends APIMap, ClientAPI extends APIMap> exten
     })
   }
 
+  get connected() {
+    return this.socket.connected
+  }
+
   ready(): Promise<void> {
     if (this.socket.connected) {
       return Promise.resolve()

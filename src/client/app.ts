@@ -10,7 +10,7 @@ import { isMobile } from './util/env'
 import { Router } from './util/router'
 import { ViewController } from './util/view_controller'
 import { Breadcrumb } from './view/breadcrumb'
-import { Editor } from './view/editor'
+import { Editor, SaveStatus } from './view/editor'
 import { HtmlPreview } from './view/html_preview'
 import { LayoutToggle } from './view/layout_toggle'
 import { MarkdownPreview } from './view/markdown_preview'
@@ -35,11 +35,13 @@ class App extends Disposable implements ViewController {
   private breadcrumb: Breadcrumb
   private sidebar: Sidebar
   private id: string
+  private $connectionStatus: HTMLElement
   private $saveStatus: HTMLElement
   private $main: HTMLElement
   private $editorPane: HTMLElement
-  private isDisconnected = false
-  private isSaving = false
+  private isSocketConnected = false
+  private isBrowserOnline = navigator.onLine
+  private saveStatus: SaveStatus = 'idle'
 
   constructor(id: string) {
     super()
@@ -68,8 +70,8 @@ class App extends Disposable implements ViewController {
     this.editor = new Editor({
       id,
       noteService: this.noteService,
-      onSaveStatusChange: (isSaving) => {
-        this.isSaving = isSaving
+      onSaveStatusChange: (status) => {
+        this.saveStatus = status
         this.applySaveStatus()
       },
     })
@@ -82,7 +84,10 @@ class App extends Disposable implements ViewController {
       h('header', {}, [
         this.sidebarToggle.dom,
         this.breadcrumb.dom,
-        (this.$saveStatus = h('span', { className: 'save-status' }, 'Saving...')),
+        h('div', { className: 'status-cluster' }, [
+          (this.$connectionStatus = h('span', { className: 'connection-status' }, '')),
+          (this.$saveStatus = h('span', { className: 'save-status' }, '')),
+        ]),
         h('div', { className: 'header-actions' }, [
           this.viewModePicker.dom,
           this.themePicker.dom,
@@ -104,19 +109,30 @@ class App extends Disposable implements ViewController {
   init() {
     document.documentElement.classList.toggle('mobile', isMobile)
 
+    this.isSocketConnected = this.rpcClient.connected
+
     this.register(
       this.rpcClient.on('connected', () => {
-        this.isDisconnected = false
-        this.applySaveStatus()
+        this.isSocketConnected = true
+        this.applyConnectionStatus()
       }),
     )
 
     this.register(
       this.rpcClient.on('disconnected', () => {
-        this.isDisconnected = true
-        this.applySaveStatus()
+        this.isSocketConnected = false
+        this.applyConnectionStatus()
       }),
     )
+
+    this.register(listenDom(window, 'online', () => {
+      this.isBrowserOnline = true
+      this.applyConnectionStatus()
+    }))
+    this.register(listenDom(window, 'offline', () => {
+      this.isBrowserOnline = false
+      this.applyConnectionStatus()
+    }))
 
     this.editor.init()
     this.sidebarToggle.init()
@@ -137,6 +153,7 @@ class App extends Disposable implements ViewController {
     this.register(UiStore.shared.on('layoutWidthChanged', this.applyLayoutWidth.bind(this)))
     this.applyViewMode()
     this.applyLayoutWidth()
+    this.applyConnectionStatus()
     this.applySaveStatus()
     this.applySidebarVisibility()
 
@@ -162,8 +179,8 @@ class App extends Disposable implements ViewController {
     this.editor = new Editor({
       id: newId,
       noteService: this.noteService,
-      onSaveStatusChange: (isSaving) => {
-        this.isSaving = isSaving
+      onSaveStatusChange: (status) => {
+        this.saveStatus = status
         this.applySaveStatus()
       },
     })
@@ -179,11 +196,34 @@ class App extends Disposable implements ViewController {
     await this.applyViewMode()
   }
 
+  private applyConnectionStatus() {
+    const { $connectionStatus } = this
+    let label = ''
+    let visible = false
+    let isOffline = false
+
+    if (!this.isSocketConnected) {
+      visible = true
+      if (!this.isBrowserOnline) {
+        label = 'Offline'
+        isOffline = true
+      } else {
+        label = 'Connecting...'
+      }
+    }
+
+    $connectionStatus.classList.toggle('is-visible', visible)
+    $connectionStatus.classList.toggle('is-offline', isOffline)
+    $connectionStatus.textContent = label
+  }
+
   private applySaveStatus() {
     const { $saveStatus } = this
-    $saveStatus.classList.toggle('is-saving', this.isSaving || this.isDisconnected)
-    $saveStatus.classList.toggle('is-error', this.isDisconnected)
-    $saveStatus.textContent = this.isDisconnected ? 'Connecting...' : 'Saving...'
+    const visible = this.saveStatus !== 'idle'
+    $saveStatus.classList.toggle('is-visible', visible)
+    $saveStatus.classList.toggle('is-error', this.saveStatus === 'error')
+    $saveStatus.textContent =
+      this.saveStatus === 'saving' ? 'Saving...' : this.saveStatus === 'error' ? 'Error' : ''
   }
 
   private async applyViewMode() {
