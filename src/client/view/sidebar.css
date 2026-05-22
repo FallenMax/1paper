@@ -29,8 +29,9 @@ aside.sidebar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 4px;
-      padding-right: 4px;
+      gap: 2px;
+      /* Inset action so its hover radius is concentric with the row corner (R - pad) */
+      padding: var(--popover-pad);
       border-radius: var(--radius-control);
       transition: background-color 0.12s ease;
     }
@@ -38,9 +39,11 @@ aside.sidebar {
     a {
       color: inherit;
       text-decoration: none;
-      display: block;
+      display: flex;
+      align-items: center;
+      min-height: calc(var(--icon-size) + var(--popover-pad) * 2);
       line-height: 1.7;
-      padding: 4px 8px;
+      padding: 0 6px 0 6px;
       flex: 1;
       min-width: 0;
       overflow: hidden;
@@ -56,11 +59,15 @@ aside.sidebar {
     }
 
     .tree-item-menu {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       opacity: 0;
       transition: opacity 0.15s ease;
       flex-shrink: 0;
       .icon-button {
-        padding: 3px;
+        padding: var(--popover-pad);
+        border-radius: var(--radius-inset);
       }
     }
     @media (max-width: 768px) {

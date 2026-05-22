@@ -3,7 +3,7 @@
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
   box-shadow: 0 8px 24px rgb(0 0 0 / 12%), 0 1px 0 rgb(0 0 0 / 4%);
-  padding: 12px;
+  padding: var(--popover-pad);
   z-index: 100;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85rem;
@@ -33,14 +33,14 @@ html[data-theme='dark'] .popover {
 }
 
 .popover-message {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   line-height: 1.5;
   color: var(--text);
 }
 
 .popover-list {
-  margin: 4px 0 10px;
-  padding: 0 0 0 12px;
+  margin: 2px 0 6px;
+  padding: 0 0 0 10px;
   color: var(--text-secondary);
   font-size: 0.78rem;
   line-height: 1.6;
@@ -55,14 +55,14 @@ html[data-theme='dark'] .popover {
   display: block;
   width: 100%;
   border: 1px solid var(--border);
-  border-radius: var(--radius-control);
+  border-radius: var(--radius-inset);
   background: transparent;
   font-family: inherit;
   font-size: inherit;
   color: var(--text);
-  padding: 6px 8px;
+  padding: 5px 8px;
   outline: none;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
   transition: border-color 0.15s, background-color 0.15s;
 }
 .popover-input:focus {
@@ -76,8 +76,10 @@ html[data-theme='dark'] .popover {
 .popover-menu {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
   min-width: 140px;
+  overflow: hidden;
+  border-radius: var(--radius-inset);
 }
 .popover-menu-item {
   appearance: none;
@@ -87,10 +89,19 @@ html[data-theme='dark'] .popover {
   font-family: inherit;
   font-size: inherit;
   text-align: left;
-  padding: 6px 12px;
-  border-radius: var(--radius-control);
+  padding: 5px 10px;
+  border-radius: 0;
   cursor: pointer;
   transition: background-color 0.12s, color 0.12s;
+}
+.popover-menu-item:first-child {
+  border-radius: var(--radius-inset) var(--radius-inset) 0 0;
+}
+.popover-menu-item:last-child {
+  border-radius: 0 0 var(--radius-inset) var(--radius-inset);
+}
+.popover-menu-item:only-child {
+  border-radius: var(--radius-inset);
 }
 .popover-menu-item:hover {
   background: var(--bg-hover);
@@ -111,8 +122,10 @@ html[data-theme='dark'] .popover-menu-item.is-danger:hover {
 .popover-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 2px;
-  margin-top: 4px;
+  gap: 0;
+  margin-top: 2px;
+  overflow: hidden;
+  border-radius: var(--radius-inset);
 }
 
 .popover-button {
@@ -123,9 +136,18 @@ html[data-theme='dark'] .popover-menu-item.is-danger:hover {
   font-family: inherit;
   font-size: inherit;
   padding: 4px 10px;
-  border-radius: var(--radius-control);
+  border-radius: 0;
   cursor: pointer;
   transition: color 0.12s, background-color 0.12s;
+}
+.popover-actions .popover-button:first-child {
+  border-radius: var(--radius-inset) 0 0 var(--radius-inset);
+}
+.popover-actions .popover-button:last-child {
+  border-radius: 0 var(--radius-inset) var(--radius-inset) 0;
+}
+.popover-actions .popover-button:only-child {
+  border-radius: var(--radius-inset);
 }
 .popover-button:hover {
   color: var(--text);

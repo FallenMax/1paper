@@ -28,6 +28,8 @@ body {
   --sidebar-row-inset: calc(var(--chrome-inset) + var(--control-pad));
   /* Chrome (sidebar, header, inputs): flat controls on the desk */
   --radius-control: 6px;
+  --popover-pad: 2px;
+  --radius-inset: calc(var(--radius-control) - var(--popover-pad));
   /* Sheet: the only elevated "paper" surface */
   --radius-sheet: 8px;
   --pad-sheet-x: 24px;
