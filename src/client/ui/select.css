@@ -2,7 +2,7 @@
   position: relative;
   width: calc(var(--icon-size) + 8px);
   height: calc(var(--icon-size) + 8px);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 4px;
   color: var(--text-secondary);
   svg {

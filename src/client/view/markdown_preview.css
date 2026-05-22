@@ -1,11 +1,12 @@
 .markdown-preview {
   background: var(--sheet-bg);
-  padding: 32px;
+  padding: var(--pad-sheet-y) var(--pad-sheet-x);
   overflow: auto;
   -webkit-overflow-scrolling: touch;
 }
 @media (max-width: 768px) {
   .markdown-preview {
-    padding: 20px;
+    --pad-sheet-x: 18px;
+    --pad-sheet-y: 18px;
   }
 }

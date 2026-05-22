@@ -198,7 +198,7 @@ export class Sidebar extends Disposable implements ViewController {
       'li',
       {
         className: `note-item ${isCurrentNote ? 'is-current' : ''}`,
-        style: { paddingLeft: `${level * 12}px` },
+        style: level > 0 ? { marginLeft: `${level * 12}px` } : undefined,
       },
       [h('div', { className: 'tree-item-content' }, [linkElement.dom, menuWrapper])],
     )

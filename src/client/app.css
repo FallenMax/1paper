@@ -22,10 +22,22 @@ body {
   --editor-max-width-wide: 1200px;
   --editor-max-width: var(--editor-max-width-normal);
   --header-height: 48px;
-  --sheet-radius: 4px;
+  /* Header/sidebar horizontal rhythm (toggle icon glyph aligns at inset + control pad) */
+  --chrome-inset: 12px;
+  --control-pad: 4px;
+  --sidebar-row-inset: calc(var(--chrome-inset) + var(--control-pad));
+  /* Chrome (sidebar, header, inputs): flat controls on the desk */
+  --radius-control: 6px;
+  /* Sheet: the only elevated "paper" surface */
+  --radius-sheet: 8px;
+  --pad-sheet-x: 24px;
+  --pad-sheet-y: 24px;
+  --pad-sheet-bottom: 80px;
+  --font-editor: 1.071rem;
   font-size: 14px;
   @media (max-width: 768px) {
     --icon-size: 20px;
+    --chrome-inset: 8px;
     font-size: 16px;
     --sidebar-width: 260px;
   }
@@ -96,7 +108,7 @@ body {
     display: flex;
     align-items: center;
     height: var(--header-height);
-    padding: 0 12px;
+    padding: 0 var(--chrome-inset);
     gap: 10px;
     flex-shrink: 0;
     .status-cluster {
@@ -130,7 +142,6 @@ body {
       padding-left: 4px;
     }
     @media (max-width: 768px) {
-      padding: 0 8px;
       gap: 6px;
       .header-actions {
         gap: 6px;
@@ -183,7 +194,7 @@ body {
       min-height: 0;
       background: var(--sheet-bg);
       border: 1px solid var(--sheet-border);
-      border-radius: var(--sheet-radius) var(--sheet-radius) 0 0;
+      border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
       box-shadow: var(--sheet-shadow);
     }
   }

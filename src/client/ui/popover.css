@@ -1,7 +1,7 @@
 .popover {
   background: var(--sheet-bg);
   border: 1px solid var(--border-strong);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   box-shadow: 0 8px 24px rgb(0 0 0 / 12%), 0 1px 0 rgb(0 0 0 / 4%);
   padding: 12px;
   z-index: 100;
@@ -54,19 +54,20 @@ html[data-theme='dark'] .popover {
 .popover-input {
   display: block;
   width: 100%;
-  border: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
   background: transparent;
   font-family: inherit;
   font-size: inherit;
   color: var(--text);
-  padding: 4px 0;
-  border-bottom: 1px solid var(--border);
+  padding: 6px 8px;
   outline: none;
   margin-bottom: 10px;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, background-color 0.15s;
 }
 .popover-input:focus {
-  border-bottom-color: var(--border-strong);
+  border-color: var(--border-strong);
+  background: var(--bg-hover);
 }
 .popover-input::placeholder {
   color: var(--text-disabled);
@@ -87,7 +88,7 @@ html[data-theme='dark'] .popover {
   font-size: inherit;
   text-align: left;
   padding: 6px 12px;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   transition: background-color 0.12s, color 0.12s;
 }
@@ -122,7 +123,7 @@ html[data-theme='dark'] .popover-menu-item.is-danger:hover {
   font-family: inherit;
   font-size: inherit;
   padding: 4px 10px;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
   cursor: pointer;
   transition: color 0.12s, background-color 0.12s;
 }

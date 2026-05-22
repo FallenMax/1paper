@@ -12,21 +12,17 @@ aside.sidebar {
 
   .note-item {
     color: var(--text-secondary);
-    position: relative;
-    transition: background-color 0.12s ease;
+    padding: 1px var(--chrome-inset) 1px var(--sidebar-row-inset);
 
-    &:hover {
+    &:hover .tree-item-content {
       background: var(--bg-hover);
-      .tree-item-menu {
-        opacity: 1;
-      }
     }
-    &.is-current {
-      background: var(--bg-hover);
-      a {
-        color: var(--text);
-        font-weight: 500;
-      }
+    &.is-current .tree-item-content {
+      background: var(--bg-active);
+    }
+    &:hover .tree-item-menu,
+    &.is-current .tree-item-menu {
+      opacity: 1;
     }
 
     .tree-item-content {
@@ -35,6 +31,8 @@ aside.sidebar {
       justify-content: space-between;
       gap: 4px;
       padding-right: 4px;
+      border-radius: var(--radius-control);
+      transition: background-color 0.12s ease;
     }
 
     a {
@@ -42,7 +40,7 @@ aside.sidebar {
       text-decoration: none;
       display: block;
       line-height: 1.7;
-      padding: 4px 8px 4px 16px;
+      padding: 4px 8px;
       flex: 1;
       min-width: 0;
       overflow: hidden;
@@ -50,6 +48,11 @@ aside.sidebar {
       white-space: nowrap;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       font-size: 0.92rem;
+    }
+
+    &.is-current a {
+      color: var(--text);
+      font-weight: 500;
     }
 
     .tree-item-menu {
@@ -68,7 +71,7 @@ aside.sidebar {
   }
 
   .sidebar-footer {
-    padding: 12px 12px 16px;
+    padding: 12px var(--chrome-inset) 16px var(--sidebar-row-inset);
     flex-shrink: 0;
     margin-top: auto;
     display: flex;
@@ -81,11 +84,15 @@ aside.sidebar {
     align-items: center;
     flex: 1;
     gap: 2px;
-    border-bottom: 1px solid var(--border);
-    transition: border-color 0.15s;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-control);
+    background: transparent;
+    padding: 0 4px 0 8px;
+    transition: border-color 0.15s, background-color 0.15s;
   }
   .add-note-form:focus-within {
-    border-bottom-color: var(--border-strong);
+    border-color: var(--border-strong);
+    background: var(--bg-hover);
   }
   .add-note-input {
     flex: 1;
@@ -95,7 +102,7 @@ aside.sidebar {
     color: var(--text);
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.92rem;
-    padding: 6px 4px 6px 0;
+    padding: 6px 0;
     outline: none;
   }
   .add-note-input::placeholder {

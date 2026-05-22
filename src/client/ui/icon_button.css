@@ -12,7 +12,7 @@
   user-select: none;
   color: var(--text-secondary);
   gap: 4px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   svg {
     color: inherit;
     width: var(--icon-size);
