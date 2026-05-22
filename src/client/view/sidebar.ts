@@ -171,9 +171,9 @@ export class Sidebar extends Disposable implements ViewController {
           showMenuPopover({
             anchor: menuButton.dom,
             items: [
-              { label: 'Add child', value: 'addChild' },
-              { label: 'Move', value: 'move' },
-              { label: 'Delete', value: 'delete', isDanger: true },
+              { label: 'New sub-note', value: 'addChild' },
+              { label: 'Move to…', value: 'move' },
+              { label: 'Delete note', value: 'delete', isDanger: true },
             ],
             onSelect: (action) => {
               if (action === 'addChild') {

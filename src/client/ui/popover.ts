@@ -213,8 +213,10 @@ export function showMenuPopover(opts: MenuPopoverOptions): Popover | null {
       {
         className: `popover-menu-item ${item.isDanger ? 'is-danger' : ''}`,
         onclick: () => {
-          opts.onSelect(item.value)
+          // Close before onSelect so sync follow-up popovers (e.g. input) on the
+          // same anchor are not swallowed by toggleOff.
           popover.close()
+          opts.onSelect(item.value)
         },
       },
       item.label,
