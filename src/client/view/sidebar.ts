@@ -1,4 +1,5 @@
 import { Disposable } from '../../common/disposable'
+import { UserError } from '../../common/error'
 import { icons } from '../icon/icons'
 import { NoteService } from '../service/note.service'
 import { UiStore } from '../store/ui.store'
@@ -266,7 +267,11 @@ export class Sidebar extends Disposable implements ViewController {
           const target = newId.trim()
           if (!target || target === oldId) return
           if (target.startsWith(oldId + '/')) {
-            showError(new Error(`Cannot move "${oldId}" into its own descendant path "${target}".`))
+            showError(
+              new UserError(
+                `Cannot move "${oldId}" into its own descendant path "${target}". Use a path outside this note's tree.`,
+              ),
+            )
             return
           }
           try {
