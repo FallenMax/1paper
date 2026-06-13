@@ -19,7 +19,7 @@ export class HtmlPreview extends Disposable implements ViewController {
       [],
     )
 
-    editor.on('localNoteUpdated', this.render)
+    this.register(editor.on('localNoteUpdated', this.render))
     this.render()
   }
 

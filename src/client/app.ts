@@ -125,14 +125,18 @@ class App extends Disposable implements ViewController {
       }),
     )
 
-    this.register(listenDom(window, 'online', () => {
-      this.isBrowserOnline = true
-      this.applyConnectionStatus()
-    }))
-    this.register(listenDom(window, 'offline', () => {
-      this.isBrowserOnline = false
-      this.applyConnectionStatus()
-    }))
+    this.register(
+      listenDom(window, 'online', () => {
+        this.isBrowserOnline = true
+        this.applyConnectionStatus()
+      }),
+    )
+    this.register(
+      listenDom(window, 'offline', () => {
+        this.isBrowserOnline = false
+        this.applyConnectionStatus()
+      }),
+    )
 
     this.editor.init()
     this.sidebarToggle.init()
@@ -149,7 +153,6 @@ class App extends Disposable implements ViewController {
     this.applyTheme()
 
     this.register(UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this)))
-    this.register(UiStore.shared.on('treeVisibilityChanged', this.applySidebarVisibility.bind(this)))
     this.register(UiStore.shared.on('layoutWidthChanged', this.applyLayoutWidth.bind(this)))
     this.applyViewMode()
     this.applyLayoutWidth()
@@ -222,8 +225,7 @@ class App extends Disposable implements ViewController {
     const visible = this.saveStatus !== 'idle'
     $saveStatus.classList.toggle('is-visible', visible)
     $saveStatus.classList.toggle('is-error', this.saveStatus === 'error')
-    $saveStatus.textContent =
-      this.saveStatus === 'saving' ? 'Saving...' : this.saveStatus === 'error' ? 'Error' : ''
+    $saveStatus.textContent = this.saveStatus === 'saving' ? 'Saving...' : this.saveStatus === 'error' ? 'Error' : ''
   }
 
   private async applyViewMode() {
@@ -242,8 +244,10 @@ class App extends Disposable implements ViewController {
         const { MarkdownPreview } = await import('./view/markdown_preview')
         this.markdownPreview = new MarkdownPreview(this.editor)
       }
-      if (!this.$editorPane.contains(this.markdownPreview.dom)) {
-        this.$editorPane.appendChild(this.markdownPreview.dom)
+      if (UiStore.shared.viewMode === viewMode) {
+        if (!this.$editorPane.contains(this.markdownPreview.dom)) {
+          this.$editorPane.appendChild(this.markdownPreview.dom)
+        }
       }
     } else {
       this.markdownPreview?.dom.remove()
@@ -254,8 +258,10 @@ class App extends Disposable implements ViewController {
         const { HtmlPreview } = await import('./view/html_preview')
         this.htmlPreview = new HtmlPreview(this.editor)
       }
-      if (!this.$editorPane.contains(this.htmlPreview.dom)) {
-        this.$editorPane.appendChild(this.htmlPreview.dom)
+      if (UiStore.shared.viewMode === viewMode) {
+        if (!this.$editorPane.contains(this.htmlPreview.dom)) {
+          this.$editorPane.appendChild(this.htmlPreview.dom)
+        }
       }
     } else {
       this.htmlPreview?.dom.remove()

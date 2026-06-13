@@ -25,7 +25,7 @@ export class MarkdownPreview extends Disposable implements ViewController {
     this.$css.id = 'markdown-preview-css'
     document.head.appendChild(this.$css)
 
-    editor.on('localNoteUpdated', this.render)
+    this.register(editor.on('localNoteUpdated', this.render))
     this.render()
 
     this.applyTheme()

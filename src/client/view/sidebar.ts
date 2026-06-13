@@ -2,7 +2,6 @@ import { Disposable } from '../../common/disposable'
 import { UserError } from '../../common/error'
 import { icons } from '../icon/icons'
 import { NoteService } from '../service/note.service'
-import { UiStore } from '../store/ui.store'
 import { IconButton } from '../ui/icon_button'
 import { Link } from '../ui/link'
 import { showConfirmPopover, showInputPopover, showMenuPopover } from '../ui/popover'
@@ -26,7 +25,10 @@ export class Sidebar extends Disposable implements ViewController {
   get rootId() {
     return this.id.split('/')[0]
   }
-  constructor(private id: string, private noteService: NoteService) {
+  constructor(
+    private id: string,
+    private noteService: NoteService,
+  ) {
     super()
     this.dom = h('aside', { className: 'sidebar' }, [
       (this.$noteList = h('ul', { className: 'note-list' }, [])),
@@ -36,12 +38,6 @@ export class Sidebar extends Disposable implements ViewController {
 
   async init() {
     this.register(
-      UiStore.shared.on('treeVisibilityChanged', () => {
-        this.applyExpandState()
-      }),
-    )
-
-    this.register(
       this.noteService.on('treeUpdate', ({ rootId }) => {
         if (this.rootId === rootId) {
           this.updateTreeNoteIds()
@@ -49,7 +45,6 @@ export class Sidebar extends Disposable implements ViewController {
       }),
     )
 
-    this.applyExpandState()
     await this.updateTreeNoteIds()
   }
 
@@ -300,11 +295,6 @@ export class Sidebar extends Disposable implements ViewController {
     } catch (error) {
       showError(error)
     }
-  }
-
-  private applyExpandState() {
-    // Visibility is now controlled by the parent (main.is-sidebar-open)
-    // No-op kept to satisfy event subscription contract.
   }
 
   /** Switch to a different note ID */
