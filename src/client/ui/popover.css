@@ -2,7 +2,9 @@
   background: var(--sheet-bg);
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-control);
-  box-shadow: 0 8px 24px rgb(0 0 0 / 12%), 0 1px 0 rgb(0 0 0 / 4%);
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 12%),
+    0 1px 0 rgb(0 0 0 / 4%);
   z-index: 100;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.85rem;
@@ -28,7 +30,9 @@
 }
 
 html[data-theme='dark'] .popover {
-  box-shadow: 0 8px 24px rgb(0 0 0 / 40%), 0 1px 0 rgb(0 0 0 / 30%);
+  box-shadow:
+    0 8px 24px rgb(0 0 0 / 40%),
+    0 1px 0 rgb(0 0 0 / 30%);
 }
 
 .popover--menu {
@@ -70,7 +74,9 @@ html[data-theme='dark'] .popover {
   padding: 6px 8px;
   outline: none;
   margin-bottom: 8px;
-  transition: border-color 0.15s, background-color 0.15s;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
 }
 .popover-input:focus {
   border-color: var(--border-strong);
@@ -99,7 +105,6 @@ html[data-theme='dark'] .popover {
   padding: 5px 10px;
   border-radius: 0;
   cursor: pointer;
-  transition: background-color 0.12s, color 0.12s;
 }
 .popover-menu-item:first-child {
   border-radius: var(--radius-inset) var(--radius-inset) 0 0;
@@ -143,7 +148,9 @@ html[data-theme='dark'] .popover-menu-item.is-danger:hover {
   padding: 4px 10px;
   border-radius: var(--radius-control);
   cursor: pointer;
-  transition: color 0.12s, background-color 0.12s;
+  transition:
+    color 0.12s,
+    background-color 0.12s;
 }
 .popover-button:hover {
   color: var(--text);

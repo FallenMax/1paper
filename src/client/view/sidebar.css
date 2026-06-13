@@ -33,7 +33,6 @@ aside.sidebar {
       /* Inset action so its hover radius is concentric with the row corner (R - pad) */
       padding: var(--popover-pad);
       border-radius: var(--radius-control);
-      transition: background-color 0.12s ease;
     }
 
     a {
@@ -95,7 +94,9 @@ aside.sidebar {
     border-radius: var(--radius-control);
     background: transparent;
     padding: 0 4px 0 8px;
-    transition: border-color 0.15s, background-color 0.15s;
+    transition:
+      border-color 0.15s,
+      background-color 0.15s;
   }
   .add-note-form:focus-within {
     border-color: var(--border-strong);
