@@ -153,6 +153,7 @@ class App extends Disposable implements ViewController {
     this.applyTheme()
 
     this.register(UiStore.shared.on('viewModeChanged', this.applyViewMode.bind(this)))
+    this.register(UiStore.shared.on('treeVisibilityChanged', this.applySidebarVisibility.bind(this)))
     this.register(UiStore.shared.on('layoutWidthChanged', this.applyLayoutWidth.bind(this)))
     this.applyViewMode()
     this.applyLayoutWidth()
